@@ -50,6 +50,22 @@ Rokk is based on Terax (Apache License 2.0). This file lists every file Rokk has
 - `src/settings/sections/GeneralSection.tsx`: notification and autostart descriptions, error message.
 - `src/settings/sections/ModelsSection.tsx`: keychain description.
 
+## Handshake (phase 2)
+
+Added:
+
+- `docs/rokk/HANDSHAKE.md`: how the handshake works, its flag, the dev preview and known gaps.
+- `src/modules/rokk-handshake/index.tsx`: lazy entry (default export).
+- `src/modules/rokk-handshake/HandshakeOverlay.tsx`: the overlay, the one-time hop mark and the dev-only `window.rokkHandshake()`.
+- `src/modules/rokk-handshake/rules.ts`: pure greeting rules.
+- `src/modules/rokk-handshake/rules.test.ts`: tests for the rules.
+
+Modified:
+
+- `src/app/App.tsx`: one `React.lazy` import and one `<Suspense>` mount line next to the `Toaster`.
+- `src/components/brand/RokkMark.tsx`: exports `BODY_PATH` and `HOLE_PATH` so the handshake reuses the mark shapes.
+- `docs/rokk/TODO.md`: added the Settings toggle and the executable rename migration.
+
 ## Visible strings left as Terax on purpose
 
 - `src/modules/updater/UpdaterDialog.tsx`: "Terax vX is available", "Restart Terax", and the `Terax_*.deb` / `Terax-*.rpm` commands. The updater still serves Terax releases, so this text is accurate until the feed changes (see `docs/rokk/TODO.md`).

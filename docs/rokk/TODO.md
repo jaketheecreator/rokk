@@ -22,3 +22,18 @@ These were left as Terax on purpose in phase 1. Each needs a migration or a rele
 
 - [ ] **Cargo package and binary name** (`terax`, `terax_lib`, `default-run`). These feed the release workflow.
 - [ ] **CLI names**: the `terax-cli` sidecar, the `terax` launcher on PATH inside panes, `TERAX_CLI`, and the `build.rs` sidecar path.
+
+## Handshake
+
+- [ ] **Settings toggle** for the handshake. Today it is controlled only by `localStorage["rokk.handshake"] = "off"` (see `docs/rokk/HANDSHAKE.md`).
+
+## Executable rename (terax to rokk)
+
+Renaming the compiled program breaks the places below, so migrate them together in one change. Verify first: the macOS Dock label in dev may come from the embedded Info.plist rather than the executable name, so the rename may not be needed for the Dock at all.
+
+- [ ] `src-tauri/installer-hooks.nsh` lines 7-19: the NSIS "Open in" registry entries hardcode `$INSTDIR\terax.exe`. Point them at the new name and remove the old registry keys on upgrade.
+- [ ] `src-tauri/src/modules/agent.rs` lines 118-140: the Windows Codex and Gemini hooks embed the absolute executable path. Add that path to the installed-check (`status_needle`) so stale hooks are reported and reinstalled, plus a test that locks it.
+- [ ] `.github/workflows/release.yml` lines 130 and 150: the AppImage checks for `usr/bin/terax`.
+- [ ] `nix/package.nix` lines 60-62: installs and wraps `usr/bin/terax`.
+- [ ] `scripts/app-lab/run.py` lines 68 and 166: finds the app by the process name `terax`.
+- [ ] `src-tauri/Cargo.toml`: `default-run = "terax"`.

@@ -149,6 +149,8 @@ const BenchBridge = __TERAX_BENCH__
   ? lazy(() => import("@/bench/BenchBridge"))
   : null;
 
+const RokkHandshake = lazy(() => import("@/modules/rokk-handshake"));
+
 export default function App() {
   const {
     tabs,
@@ -1594,6 +1596,7 @@ export default function App() {
             onActivate={onActivateAgent}
           />
           <Toaster position="bottom-right" />
+          <Suspense fallback={null}><RokkHandshake tabs={tabs} activeId={activeId} /></Suspense>
 
           {hasComposer ? (
             <>
