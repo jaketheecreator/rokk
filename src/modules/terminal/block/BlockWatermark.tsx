@@ -1,3 +1,4 @@
+import { RokkMark } from "@/components/brand/RokkMark";
 import { cn } from "@/lib/utils";
 import { useShortcutLabel } from "@/modules/shortcuts";
 import { useEffect, useState, useSyncExternalStore } from "react";
@@ -42,12 +43,7 @@ export function BlockWatermark({ leafId, subscribe }: Props) {
           : "translate-y-2 opacity-0",
       )}
     >
-      <img
-        src="/logo.png"
-        alt=""
-        draggable={false}
-        className="size-24 rounded-3xl shadow-lg shadow-black/25"
-      />
+      <RokkMark size={96} className="text-foreground" />
       <div className="grid grid-cols-[auto_auto] items-center gap-x-12 gap-y-3 text-[13px]">
         <Hint label="Browse your command history" keys="↑" />
         <Hint label="Autocomplete paths and commands" keys="Tab" />

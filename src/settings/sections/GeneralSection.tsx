@@ -499,7 +499,7 @@ export function GeneralSection() {
         <Label>Agents</Label>
         <SettingRow
           title="Coding agent notifications"
-          description="Alert when a coding agent needs your input or finishes. Native notification when Terax is unfocused, in-app otherwise."
+          description="Alert when a coding agent needs your input or finishes. Native notification when Rokk is unfocused, in-app otherwise."
         >
           <div className="flex items-center gap-2">
             <Button
@@ -539,7 +539,7 @@ export function GeneralSection() {
         <div className="flex flex-col gap-2">
           <SettingRow
             title="Launch at login"
-            description="Open Terax automatically when you sign in."
+            description="Open Rokk automatically when you sign in."
           >
             <Switch
               checked={autostart}
@@ -595,7 +595,7 @@ function notificationTestTitle(status: NotificationTestState): string {
     case "denied":
       return "Notifications are disabled by the system";
     case "failed":
-      return "Terax could not request a native notification";
+      return "Rokk could not request a native notification";
     default:
       return "Send a native test notification after two seconds";
   }

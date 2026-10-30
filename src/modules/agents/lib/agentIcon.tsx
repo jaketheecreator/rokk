@@ -1,3 +1,4 @@
+import { RokkMark } from "@/components/brand/RokkMark";
 import {
   AiBrowserIcon,
   ChatGptIcon,
@@ -52,16 +53,7 @@ export function AgentIcon({
     return <PiIcon size={size} className={className} />;
   }
   if (agent.toLowerCase().includes("terax")) {
-    return (
-      <img
-        src="/logo.png"
-        alt=""
-        width={size}
-        height={size}
-        className={className}
-        style={{ width: size, height: size }}
-      />
-    );
+    return <RokkMark size={size} className={className} />;
   }
   return (
     <HugeiconsIcon

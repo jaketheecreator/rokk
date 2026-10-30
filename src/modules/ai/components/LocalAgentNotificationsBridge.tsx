@@ -63,11 +63,11 @@ export function LocalAgentNotificationsBridge() {
       });
 
     if (status === "awaiting-approval") {
-      fire("attention", "Terax needs your approval", "Approve a tool to continue");
+      fire("attention", "Rokk needs your approval", "Approve a tool to continue");
     } else if (status === "error") {
-      fire("error", "Terax run failed", error ?? undefined);
+      fire("error", "Rokk run failed", error ?? undefined);
     } else if (status === "idle" && isBusy(was)) {
-      fire("finished", "Terax finished", "Your task is ready");
+      fire("finished", "Rokk finished", "Your task is ready");
     }
   }, [status, error]);
 

@@ -6,6 +6,7 @@ import { getName, getVersion } from "@tauri-apps/api/app";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { arch, platform } from "@tauri-apps/plugin-os";
 import { useEffect, useState } from "react";
+import { RokkMark } from "@/components/brand/RokkMark";
 import { SectionHeader } from "../components/SectionHeader";
 
 const REPO_URL = "https://github.com/crynta/terax-ai";
@@ -22,7 +23,7 @@ const PLATFORM_LABEL: Record<string, string> = {
 
 export function AboutSection() {
   const [version, setVersion] = useState("");
-  const [name, setName] = useState("Terax");
+  const [name, setName] = useState("Rokk");
   const [build, setBuild] = useState("");
   const { status, check, install } = useUpdater({ autoCheck: false });
   const checking = status.kind === "checking";
@@ -69,13 +70,13 @@ export function AboutSection() {
       <SectionHeader title="About" description="" />
 
       <div className="flex items-center gap-4 rounded-xl border border-border/60 bg-card/60 p-5">
-        <img src="/logo.png" alt="" className="size-12" draggable={false} />
+        <RokkMark size={48} className="shrink-0" />
         <div className="flex min-w-0 flex-col">
           <span className="text-[15px] font-semibold tracking-tight">
             {name}
           </span>
           <span className="text-[11px] text-muted-foreground">
-            Open-source AI-native terminal emulator
+            A calm terminal for people who build with Claude Code
           </span>
           <span className="mt-1 font-mono text-[11px] text-muted-foreground">
             v{version || "—"}
@@ -95,7 +96,7 @@ export function AboutSection() {
         <dt className="text-muted-foreground">License</dt>
         <dd>Apache 2.0</dd>
 
-        <dt className="text-muted-foreground">Source code</dt>
+        <dt className="text-muted-foreground">Based on</dt>
         <dd>
           <button
             type="button"
@@ -106,7 +107,7 @@ export function AboutSection() {
             crynta/terax-ai
           </button>
         </dd>
-        <dt className="text-muted-foreground">Website</dt>
+        <dt className="text-muted-foreground">Terax website</dt>
         <dd>
           <button
             type="button"

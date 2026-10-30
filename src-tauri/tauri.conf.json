@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Terax",
+  "productName": "Rokk",
   "version": "0.9.0",
   "identifier": "app.crynta.terax",
   "build": {
@@ -14,7 +14,7 @@
     "macOSPrivateApi": true,
     "windows": [
       {
-        "title": "Terax",
+        "title": "Rokk",
         "width": 800,
         "height": 600,
         "minWidth": 420,
@@ -93,11 +93,11 @@
       }
     },
     "category": "DeveloperTool",
-    "shortDescription": "AI-native terminal emulator",
-    "longDescription": "Terax — an open-source AI-native terminal emulator with multi-tab, file explorer, code editor, web preview, voice input, and AI agents.",
+    "shortDescription": "A calm terminal for people who build with Claude Code",
+    "longDescription": "Rokk is a calm terminal for people who build with Claude Code. Based on Terax, an open-source AI-native terminal emulator.",
     "fileAssociations": [
       {
-        "name": "Terax Document",
+        "name": "Rokk Document",
         "role": "Editor",
         "mimeType": "text/plain",
         "ext": [

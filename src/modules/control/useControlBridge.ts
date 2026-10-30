@@ -137,7 +137,7 @@ export function useControlBridge({
           if (tabId === null) {
             throw new RequestError(
               "open_failed",
-              "Terax could not create an editor tab",
+              "Rokk could not create an editor tab",
             );
           }
           await new Promise<void>((resolve) =>

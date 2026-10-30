@@ -37,7 +37,7 @@ export async function testAgentOsNotification(
   withSound = true,
 ): Promise<OsNotificationResult> {
   const result = await osNotify(
-    "Terax notifications are working",
+    "Rokk notifications are working",
     "You will be notified when an agent needs your attention.",
   );
   if (result === "requested" && withSound) playAgentNotificationSound();

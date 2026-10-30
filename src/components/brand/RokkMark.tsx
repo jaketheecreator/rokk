@@ -1,0 +1,85 @@
+import { useId } from "react";
+
+// Ported from docs/rokk/brand/rokk-mark-animated.svg; the static mark
+// (rokk-mark.svg) is the same two paths drawn with an evenodd fill.
+const BODY_PATH =
+  "M98.00,50.00 L97.99,61.35 L97.96,65.15 L97.91,67.93 L97.84,70.20 L97.75,72.16 L97.64,73.89 L97.51,75.45 L97.37,76.88 L97.20,78.20 L97.01,79.43 L96.80,80.57 L96.57,81.65 L96.31,82.67 L96.04,83.63 L95.75,84.54 L95.43,85.41 L95.09,86.23 L94.73,87.01 L94.35,87.76 L93.94,88.47 L93.51,89.14 L93.06,89.79 L92.58,90.40 L92.08,90.99 L91.55,91.55 L90.99,92.08 L90.40,92.58 L89.79,93.06 L89.14,93.51 L88.47,93.94 L87.76,94.35 L87.01,94.73 L86.23,95.09 L85.41,95.43 L84.54,95.75 L83.63,96.04 L82.67,96.31 L81.65,96.57 L80.57,96.80 L79.43,97.01 L78.20,97.20 L76.88,97.37 L75.45,97.51 L73.89,97.64 L72.16,97.75 L70.20,97.84 L67.93,97.91 L65.15,97.96 L61.35,97.99 L50.00,98.00 L38.65,97.99 L34.85,97.96 L32.07,97.91 L29.80,97.84 L27.84,97.75 L26.11,97.64 L24.55,97.51 L23.12,97.37 L21.80,97.20 L20.57,97.01 L19.43,96.80 L18.35,96.57 L17.33,96.31 L16.37,96.04 L15.46,95.75 L14.59,95.43 L13.77,95.09 L12.99,94.73 L12.24,94.35 L11.53,93.94 L10.86,93.51 L10.21,93.06 L9.60,92.58 L9.01,92.08 L8.45,91.55 L7.92,90.99 L7.42,90.40 L6.94,89.79 L6.49,89.14 L6.06,88.47 L5.65,87.76 L5.27,87.01 L4.91,86.23 L4.57,85.41 L4.25,84.54 L3.96,83.63 L3.69,82.67 L3.43,81.65 L3.20,80.57 L2.99,79.43 L2.80,78.20 L2.63,76.88 L2.49,75.45 L2.36,73.89 L2.25,72.16 L2.16,70.20 L2.09,67.93 L2.04,65.15 L2.01,61.35 L2.00,50.00 L2.01,38.65 L2.04,34.85 L2.09,32.07 L2.16,29.80 L2.25,27.84 L2.36,26.11 L2.49,24.55 L2.63,23.12 L2.80,21.80 L2.99,20.57 L3.20,19.43 L3.43,18.35 L3.69,17.33 L3.96,16.37 L4.25,15.46 L4.57,14.59 L4.91,13.77 L5.27,12.99 L5.65,12.24 L6.06,11.53 L6.49,10.86 L6.94,10.21 L7.42,9.60 L7.92,9.01 L8.45,8.45 L9.01,7.92 L9.60,7.42 L10.21,6.94 L10.86,6.49 L11.53,6.06 L12.24,5.65 L12.99,5.27 L13.77,4.91 L14.59,4.57 L15.46,4.25 L16.37,3.96 L17.33,3.69 L18.35,3.43 L19.43,3.20 L20.57,2.99 L21.80,2.80 L23.12,2.63 L24.55,2.49 L26.11,2.36 L27.84,2.25 L29.80,2.16 L32.07,2.09 L34.85,2.04 L38.65,2.01 L50.00,2.00 L61.35,2.01 L65.15,2.04 L67.93,2.09 L70.20,2.16 L72.16,2.25 L73.89,2.36 L75.45,2.49 L76.88,2.63 L78.20,2.80 L79.43,2.99 L80.57,3.20 L81.65,3.43 L82.67,3.69 L83.63,3.96 L84.54,4.25 L85.41,4.57 L86.23,4.91 L87.01,5.27 L87.76,5.65 L88.47,6.06 L89.14,6.49 L89.79,6.94 L90.40,7.42 L90.99,7.92 L91.55,8.45 L92.08,9.01 L92.58,9.60 L93.06,10.21 L93.51,10.86 L93.94,11.53 L94.35,12.24 L94.73,12.99 L95.09,13.77 L95.43,14.59 L95.75,15.46 L96.04,16.37 L96.31,17.33 L96.57,18.35 L96.80,19.43 L97.01,20.57 L97.20,21.80 L97.37,23.12 L97.51,24.55 L97.64,26.11 L97.75,27.84 L97.84,29.80 L97.91,32.07 L97.96,34.85 L97.99,38.65Z";
+const HOLE_PATH =
+  "M50.00,65.00 L49.99,68.68 L49.96,70.12 L49.91,71.20 L49.84,72.10 L49.75,72.88 L49.65,73.57 L49.52,74.20 L49.37,74.77 L49.20,75.30 L49.01,75.78 L48.79,76.23 L48.56,76.65 L48.30,77.03 L48.02,77.39 L47.72,77.72 L47.39,78.02 L47.03,78.30 L46.65,78.56 L46.23,78.79 L45.78,79.01 L45.30,79.20 L44.77,79.37 L44.20,79.52 L43.57,79.65 L42.88,79.75 L42.10,79.84 L41.20,79.91 L40.12,79.96 L38.68,79.99 L35.00,80.00 L31.32,79.99 L29.88,79.96 L28.80,79.91 L27.90,79.84 L27.12,79.75 L26.43,79.65 L25.80,79.52 L25.23,79.37 L24.70,79.20 L24.22,79.01 L23.77,78.79 L23.35,78.56 L22.97,78.30 L22.61,78.02 L22.28,77.72 L21.98,77.39 L21.70,77.03 L21.44,76.65 L21.21,76.23 L20.99,75.78 L20.80,75.30 L20.63,74.77 L20.48,74.20 L20.35,73.57 L20.25,72.88 L20.16,72.10 L20.09,71.20 L20.04,70.12 L20.01,68.68 L20.00,65.00 L20.01,61.32 L20.04,59.88 L20.09,58.80 L20.16,57.90 L20.25,57.12 L20.35,56.43 L20.48,55.80 L20.63,55.23 L20.80,54.70 L20.99,54.22 L21.21,53.77 L21.44,53.35 L21.70,52.97 L21.98,52.61 L22.28,52.28 L22.61,51.98 L22.97,51.70 L23.35,51.44 L23.77,51.21 L24.22,50.99 L24.70,50.80 L25.23,50.63 L25.80,50.48 L26.43,50.35 L27.12,50.25 L27.90,50.16 L28.80,50.09 L29.88,50.04 L31.32,50.01 L35.00,50.00 L38.68,50.01 L40.12,50.04 L41.20,50.09 L42.10,50.16 L42.88,50.25 L43.57,50.35 L44.20,50.48 L44.77,50.63 L45.30,50.80 L45.78,50.99 L46.23,51.21 L46.65,51.44 L47.03,51.70 L47.39,51.98 L47.72,52.28 L48.02,52.61 L48.30,52.97 L48.56,53.35 L48.79,53.77 L49.01,54.22 L49.20,54.70 L49.37,55.23 L49.52,55.80 L49.65,56.43 L49.75,57.12 L49.84,57.90 L49.91,58.80 L49.96,59.88 L49.99,61.32Z";
+
+const ANIMATION_CSS = `.rk-move,.rk-arc,.rk-squash,.rk-body{transform-box:fill-box;transform-origin:50% 50%}
+.rk-move{animation:rk-move 4.8s infinite}
+.rk-arc{animation:rk-arc 4.8s infinite}
+.rk-squash{animation:rk-squash 4.8s infinite}
+.rk-body{animation:rk-thump 4.8s infinite}
+@keyframes rk-move{0%{transform:translate(0px,0px)}5%{transform:translate(0px,0px);animation-timing-function:cubic-bezier(.3,1.35,.45,1)}16%{transform:translate(30px,-30px);animation-timing-function:linear}30%{transform:translate(30px,-30px);animation-timing-function:cubic-bezier(.3,1.35,.45,1)}41%{transform:translate(0px,-30px);animation-timing-function:linear}55%{transform:translate(0px,-30px);animation-timing-function:cubic-bezier(.3,1.35,.45,1)}66%{transform:translate(30px,0px);animation-timing-function:linear}80%{transform:translate(30px,0px);animation-timing-function:cubic-bezier(.3,1.35,.45,1)}91%{transform:translate(0px,0px);animation-timing-function:linear}100%{transform:translate(0px,0px)}}
+@keyframes rk-arc{0%{transform:translateY(0px)}5%{transform:translateY(0px);animation-timing-function:cubic-bezier(.2,.7,.4,1)}9.95%{transform:translateY(-10px);animation-timing-function:cubic-bezier(.6,0,.8,.4)}16%{transform:translateY(0px)}30%{transform:translateY(0px);animation-timing-function:cubic-bezier(.2,.7,.4,1)}34.95%{transform:translateY(-10px);animation-timing-function:cubic-bezier(.6,0,.8,.4)}41%{transform:translateY(0px)}55%{transform:translateY(0px);animation-timing-function:cubic-bezier(.2,.7,.4,1)}59.95%{transform:translateY(-10px);animation-timing-function:cubic-bezier(.6,0,.8,.4)}66%{transform:translateY(0px)}80%{transform:translateY(0px);animation-timing-function:cubic-bezier(.2,.7,.4,1)}84.95%{transform:translateY(-10px);animation-timing-function:cubic-bezier(.6,0,.8,.4)}91%{transform:translateY(0px)}100%{transform:translateY(0px)}}
+@keyframes rk-squash{0%{transform:scale(1,1)}3.2%{transform:scale(1,1);animation-timing-function:ease-out}5%{transform:scale(1.14,.84)}6.6%{transform:scale(.88,1.18)}15%{transform:scale(.93,1.07)}16%{transform:scale(1.2,.8)}18.4%{transform:scale(.96,1.05)}21%{transform:scale(1,1)}28.2%{transform:scale(1,1);animation-timing-function:ease-out}30%{transform:scale(1.14,.84)}31.6%{transform:scale(.88,1.18)}40%{transform:scale(.93,1.07)}41%{transform:scale(1.2,.8)}43.4%{transform:scale(.96,1.05)}46%{transform:scale(1,1)}53.2%{transform:scale(1,1);animation-timing-function:ease-out}55%{transform:scale(1.14,.84)}56.6%{transform:scale(.88,1.18)}65%{transform:scale(.93,1.07)}66%{transform:scale(1.2,.8)}68.4%{transform:scale(.96,1.05)}71%{transform:scale(1,1)}78.2%{transform:scale(1,1);animation-timing-function:ease-out}80%{transform:scale(1.14,.84)}81.6%{transform:scale(.88,1.18)}90%{transform:scale(.93,1.07)}91%{transform:scale(1.2,.8)}93.4%{transform:scale(.96,1.05)}96%{transform:scale(1,1)}100%{transform:scale(1,1)}}
+@keyframes rk-thump{0%{transform:scale(1,1)}15.5%{transform:scale(1,1)}16%{transform:scale(1.016,.984)}19%{transform:scale(.998,1.002)}22%{transform:scale(1,1)}40.5%{transform:scale(1,1)}41%{transform:scale(1.016,.984)}44%{transform:scale(.998,1.002)}47%{transform:scale(1,1)}65.5%{transform:scale(1,1)}66%{transform:scale(1.016,.984)}69%{transform:scale(.998,1.002)}72%{transform:scale(1,1)}90.5%{transform:scale(1,1)}91%{transform:scale(1.016,.984)}94%{transform:scale(.998,1.002)}97%{transform:scale(1,1)}100%{transform:scale(1,1)}}
+@media (prefers-reduced-motion:reduce){.rk-move,.rk-arc,.rk-squash,.rk-body{animation:none}}`;
+
+type Props = {
+  size?: number;
+  animated?: boolean;
+  className?: string;
+};
+
+export function RokkMark({
+  size = 16,
+  animated = false,
+  className,
+}: Props) {
+  const maskId = `rk-mask-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
+
+  if (!animated) {
+    return (
+      <svg
+        viewBox="0 0 100 100"
+        width={size}
+        height={size}
+        className={className}
+        aria-hidden="true"
+      >
+        <path
+          fill="currentColor"
+          fillRule="evenodd"
+          d={`${BODY_PATH} ${HOLE_PATH}`}
+        />
+      </svg>
+    );
+  }
+
+  return (
+    <svg
+      viewBox="0 0 100 100"
+      width={size}
+      height={size}
+      className={className}
+      aria-hidden="true"
+    >
+      <style>{ANIMATION_CSS}</style>
+      <defs>
+        <mask
+          id={maskId}
+          maskUnits="userSpaceOnUse"
+          x="0"
+          y="0"
+          width="100"
+          height="100"
+        >
+          <rect width="100" height="100" fill="#fff" />
+          <g className="rk-move">
+            <g className="rk-arc">
+              <g className="rk-squash">
+                <path fill="#000" d={HOLE_PATH} />
+              </g>
+            </g>
+          </g>
+        </mask>
+      </defs>
+      <g className="rk-body">
+        <path fill="currentColor" d={BODY_PATH} mask={`url(#${maskId})`} />
+      </g>
+    </svg>
+  );
+}
