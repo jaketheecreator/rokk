@@ -32,6 +32,7 @@ These were left as Terax on purpose in phase 1. Each needs a migration or a rele
 - [ ] **Git count freshness:** the status bar shows `sourceControl.changedCount`, which refreshes only while a source-control consumer is on screen, so it can lag until the panel is opened.
 - [ ] Before the public release, review Anthropic's brand guidelines for using the Claude spark in a third-party interface; if needed, switch to a neutral agent icon.
 - [ ] **Claude "started" versus "working":** the activity store maps the `started` signal to `working`, so a freshly launched Claude shows the turning spark until its first finish or attention. A static spark at launch would need the store to keep a separate started phase.
+- [ ] Upstream bug: duplicate @lezer/highlight (1.2.3 and 1.2.5) leaves JS and TS unhighlighted in Terax v0.9.0; fixed here with a pnpm override (in `pnpm-workspace.yaml`, since pnpm 11 ignores the `pnpm` field in `package.json`); consider reporting upstream and note that package.json, pnpm-workspace.yaml and pnpm-lock.yaml are upstream files that need care when merging upstream.
 - [ ] **Settings toggle** for the handshake. Today it is controlled only by `localStorage["rokk.handshake"] = "off"` (see `docs/rokk/HANDSHAKE.md`).
 
 ## Executable rename (terax to rokk)

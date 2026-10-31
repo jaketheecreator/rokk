@@ -7,3 +7,8 @@ allowBuilds:
   esbuild: true
   msgpackr-extract: false
   msw: true
+
+# One @lezer/highlight for every CodeMirror package: two copies leave JS and TS
+# unhighlighted because the parser's tags never match the theme's.
+overrides:
+  "@lezer/highlight": "^1.2.5"
