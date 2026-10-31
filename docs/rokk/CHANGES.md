@@ -196,6 +196,49 @@ Modified (upstream files):
 
 Modified: `.size-limit.json` (total client JS limit only), `CLAUDE.md` (Rokk rules).
 
+## Session rail (upgrade 4)
+
+Added:
+
+- `src/modules/rokk-rail/lib/rules.ts`, `rules.test.ts`: pure timeline construction, the 20-event and 32-pane caps, closed-pane pruning, durations, tab sorting and labels.
+- `src/modules/rokk-rail/lib/timeline.ts`: the startup signal recorder for the timeline.
+- `src/modules/rokk-rail/lib/railState.ts`: open state (`rokk.rail`) and width (`rokk.rail.width`).
+- `src/modules/rokk-rail/RailSlot.tsx`: renders the handle and panel inside the main panel group only while open.
+- `src/modules/rokk-rail/RailToggle.tsx`: the top bar toggle.
+- `src/modules/rokk-rail/SessionRail.tsx`, `index.tsx`: the lazy rail content.
+- `docs/rokk/SESSION_RAIL.md`.
+
+Modified (upstream files):
+
+- `src/app/App.tsx`: two imports (`RokkRailSlot`, `toggleRail`), one `React.lazy` line, one `"rail.toggle": toggleRail` handler line, and one `<RokkRailSlot><Suspense>...</Suspense></RokkRailSlot>` line after the workspace panel inside the `ResizablePanelGroup`.
+- `src/modules/header/Header.tsx`: one import and one `<RailToggle />` line before `SearchInline`.
+- `src/modules/shortcuts/shortcuts.ts`: the `rail.toggle` id and its entry (`Mod+Alt+B`, View group).
+- `src/styles/rokk-surfaces.css`: `#rokk-rail .terax-pane` uses the panel surface, like the left panel.
+- `docs/rokk/TODO.md`: Rail phase 2 and the merge note.
+
+## Prompt buddy (version 1)
+
+Added:
+
+- `src/modules/rokk-buddy/lib/`: the pure libs, each with tests.
+  - `rules.ts`: house rules, lockfile and doc detection.
+  - `draft.ts`: the deterministic prompt builder.
+  - `review.ts`: the report analyzer's pattern tables, file comparison and follow-up.
+  - `insert.ts`: the safe paste decision and bracketed encoding.
+  - `storage.ts`: localStorage with caps.
+- `src/modules/rokk-buddy/`: the components.
+  - `BuddyToggle.tsx` (startup: the button, the open state, and the gate that mounts the dialog after the first open).
+  - `index.tsx` (lazy entry), `BuddyDialog.tsx`, `DraftTab.tsx`, `RulesTab.tsx`, `ReviewTab.tsx` (its own lazy chunk) and `parts.tsx` (shared controls).
+- `docs/rokk/BUDDY.md`.
+
+Modified (upstream files):
+
+- `src/app/App.tsx`: one import (`BuddyGate`, `toggleBuddy`), one `React.lazy` line, one `"buddy.toggle": toggleBuddy` handler line, and one `<BuddyGate><Suspense>...</Suspense></BuddyGate>` line after the `Toaster`.
+- `src/modules/header/Header.tsx`: one import and one `<BuddyToggle />` line before `RailToggle`.
+- `src/modules/shortcuts/shortcuts.ts`: the `buddy.toggle` id and its entry (`Mod+Alt+D`, AI group).
+- `docs/rokk/ROADMAP.md`: the rubber-duck row is Built, version 1.
+- `docs/rokk/TODO.md`: Buddy phase 2 and the merge note.
+
 ## Visible strings left as Terax on purpose
 
 - `src/modules/updater/UpdaterDialog.tsx`: "Terax vX is available", "Restart Terax", and the `Terax_*.deb` / `Terax-*.rpm` commands. The updater still serves Terax releases, so this text is accurate until the feed changes (see `docs/rokk/TODO.md`).

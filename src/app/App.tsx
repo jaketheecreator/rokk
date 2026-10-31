@@ -133,6 +133,9 @@ import {
   TOGGLE_BLOCK_INPUT_EVENT,
   WorkspaceInputBar,
 } from "./components/WorkspaceInputBar";
+import { BuddyGate, toggleBuddy } from "@/modules/rokk-buddy/BuddyToggle";
+import { RokkRailSlot } from "@/modules/rokk-rail/RailSlot";
+import { toggleRail } from "@/modules/rokk-rail/lib/railState";
 import { WorkspaceSurface } from "./components/WorkspaceSurface";
 import { useAppCloseGuard } from "./hooks/useAppCloseGuard";
 import {
@@ -151,6 +154,8 @@ const BenchBridge = __TERAX_BENCH__
 
 const RokkHandshake = lazy(() => import("@/modules/rokk-handshake"));
 const RokkChanges = lazy(() => import("@/modules/rokk-changes"));
+const RokkRail = lazy(() => import("@/modules/rokk-rail"));
+const RokkBuddy = lazy(() => import("@/modules/rokk-buddy"));
 
 export default function App() {
   const {
@@ -950,6 +955,8 @@ export default function App() {
       },
       "settings.open": () => void openSettingsWindow(),
       "sidebar.toggle": toggleSidebar,
+      "rail.toggle": toggleRail,
+      "buddy.toggle": toggleBuddy,
       "explorer.focus": toggleExplorerFocus,
       "explorer.toggleHidden": toggleHiddenFiles,
       "view.zoomIn": zoomIn,
@@ -1568,6 +1575,7 @@ export default function App() {
                   </div>
                 </div>
               </ResizablePanel>
+              <RokkRailSlot><Suspense fallback={null}><RokkRail tabs={tabs} activeId={activeId} onSelectTab={setActiveId} onShowChanges={() => openSidebarView("changes")} repoRoot={sourceControl.repo?.repoRoot ?? null} /></Suspense></RokkRailSlot>
             </ResizablePanelGroup>
           </main>
 
@@ -1603,6 +1611,7 @@ export default function App() {
             onActivate={onActivateAgent}
           />
           <Toaster position="bottom-right" />
+          <BuddyGate><Suspense fallback={null}><RokkBuddy tabs={tabs} activeId={activeId} repoRoot={sourceControl.repo?.repoRoot ?? null} /></Suspense></BuddyGate>
           <Suspense fallback={null}><RokkHandshake tabs={tabs} activeId={activeId} /></Suspense>
 
           {hasComposer ? (

@@ -118,7 +118,8 @@ html.dark[data-rk-surface="graphite"] {
   background: var(--rk-canvas);
   box-shadow: none;
 }
-:root #sidebar .terax-pane {
+:root #sidebar .terax-pane,
+:root #rokk-rail .terax-pane {
   background: var(--rk-panel);
 }
 

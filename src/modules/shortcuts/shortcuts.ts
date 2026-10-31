@@ -46,6 +46,8 @@ export type ShortcutId =
   | "agent.focusAttention"
   | "settings.open"
   | "sidebar.toggle"
+  | "rail.toggle"
+  | "buddy.toggle"
   | "editor.undo"
   | "editor.redo"
   | "editor.save"
@@ -305,6 +307,18 @@ export const SHORTCUTS: Shortcut[] = [
       { [MOD_PROP]: true, key: "b" },
       { [MOD_PROP]: true, shift: true, key: "b" },
     ],
+  },
+  {
+    id: "rail.toggle",
+    label: "Toggle session panel",
+    group: "View",
+    defaultBindings: [{ [MOD_PROP]: true, alt: true, key: "b" }],
+  },
+  {
+    id: "buddy.toggle",
+    label: "Open Prompt buddy",
+    group: "AI",
+    defaultBindings: [{ [MOD_PROP]: true, alt: true, key: "d" }],
   },
   {
     id: "explorer.focus",
