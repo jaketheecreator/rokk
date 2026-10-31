@@ -34,7 +34,7 @@ These were left as Terax on purpose in phase 1. Each needs a migration or a rele
 - [ ] **Claude "started" versus "working":** the activity store maps the `started` signal to `working`, so a freshly launched Claude shows the turning spark until its first finish or attention. A static spark at launch would need the store to keep a separate started phase.
 - [ ] Upstream bug: duplicate @lezer/highlight (1.2.3 and 1.2.5) leaves JS and TS unhighlighted in Terax v0.9.0; fixed here with a pnpm override (in `pnpm-workspace.yaml`, since pnpm 11 ignores the `pnpm` field in `package.json`); consider reporting upstream and note that package.json, pnpm-workspace.yaml and pnpm-lock.yaml are upstream files that need care when merging upstream.
 - [ ] Changes view phase 2: attribute edits to Claude exactly, using tool events (see Rail phase 2); today files edited by the user during a session can appear. Also: SidebarRail.tsx is an upstream file that needs care when merging upstream.
-- [ ] **Size budget is full:** after the Changes view, total client JS is 1,504,872 of 1,505,000 bytes. The next feature (the session rail) needs room first: trim existing chunks, or agree a new budget.
+- [x] **Size budget:** total client JS raised to 1,530,000 bytes on 2026-10-31 for the session rail (see the policy in docs/rokk/CHANGES.md).
 - [ ] **Settings toggle** for the handshake. Today it is controlled only by `localStorage["rokk.handshake"] = "off"` (see `docs/rokk/HANDSHAKE.md`).
 
 ## Executable rename (terax to rokk)

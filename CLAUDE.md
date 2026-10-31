@@ -20,4 +20,5 @@ How Rokk work is added:
 - Rokk features live in new `src/modules/rokk-*` folders and new Rust modules under `src-tauri/src/modules/`.
 - Edits to existing files stay minimal. In `src/app/App.tsx` that means mount lines only.
 - New UI loads lazily (dynamic import), because `.size-limit.json` and `src/app/eager-budget.test.ts` fail when startup code grows.
+- Size budgets: Rokk features must load lazily; the startup budget is never raised without the owner's approval; the total client JS budget was raised from 1,505,000 to 1,530,000 bytes on 2026-10-31 to make room for the session rail; every future raise needs a written reason (in docs/rokk/CHANGES.md) and the owner's approval.
 - No AI attribution in commits, pull requests, code or docs.

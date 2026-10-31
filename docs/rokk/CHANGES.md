@@ -187,6 +187,15 @@ Modified (upstream files):
 - `src/app/App.tsx`: one `React.lazy` line, one `sidebarView === "changes"` branch mounting the view in `<Suspense>`, and the `repoRoot` prop on the `SidebarRail` mount line.
 - `docs/rokk/TODO.md`: phase 2 and the merge note.
 
+## Size budget policy
+
+- Rokk features must load lazily (React.lazy or a dynamic import), so they cost nothing at startup until used.
+- The startup budget ("main window startup JS", 540 KB in `.size-limit.json`) is never raised without the owner's approval.
+- On 2026-10-31 the total budget ("total client JS") was raised from 1,505,000 to 1,530,000 bytes (gzip) to make room for the session rail. The other four budgets are unchanged.
+- Every future raise needs a written reason here and the owner's approval.
+
+Modified: `.size-limit.json` (total client JS limit only), `CLAUDE.md` (Rokk rules).
+
 ## Visible strings left as Terax on purpose
 
 - `src/modules/updater/UpdaterDialog.tsx`: "Terax vX is available", "Restart Terax", and the `Terax_*.deb` / `Terax-*.rpm` commands. The updater still serves Terax releases, so this text is accurate until the feed changes (see `docs/rokk/TODO.md`).
