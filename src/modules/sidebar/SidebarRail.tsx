@@ -3,7 +3,8 @@ import { FolderGitTwoIcon, FolderTreeIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { SidebarViewId } from "./types";
 
-const SIDEBAR_RAIL_HEIGHT = 36;
+// 32px segments plus 4px container padding on each side.
+const SIDEBAR_RAIL_HEIGHT = 40;
 
 type RailItem = {
   id: SidebarViewId;
@@ -32,7 +33,7 @@ export function SidebarRail({ activeView, onSelectView, changedCount }: Props) {
   return (
     <div
       style={{ height: SIDEBAR_RAIL_HEIGHT }}
-      className="flex shrink-0 items-stretch gap-1 border-t border-border/60 bg-foreground/[0.025] px-1.5 py-1"
+      className="m-2 flex shrink-0 items-stretch gap-1 rounded-[11px] bg-[var(--rk-field)] p-1"
     >
       {items.map((item) => {
         const isActive = item.id === activeView;
@@ -45,11 +46,11 @@ export function SidebarRail({ activeView, onSelectView, changedCount }: Props) {
             aria-pressed={isActive}
             onClick={() => onSelectView(item.id)}
             className={cn(
-              "group relative flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-md text-[11px] font-medium outline-none transition-colors duration-[var(--dur-base)]",
+              "group relative flex h-8 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-[8px] text-[12.5px] outline-none transition-colors duration-150 ease-[ease]",
               "focus-visible:ring-2 focus-visible:ring-primary/40",
               isActive
-                ? "bg-foreground/[0.07] text-foreground dark:bg-foreground/[0.09]"
-                : "text-muted-foreground hover:bg-foreground/[0.045] hover:text-foreground",
+                ? "bg-[var(--rk-active)] font-semibold text-[var(--rk-text)]"
+                : "font-medium text-[var(--rk-text-2)] hover:bg-[var(--rk-active)]/60 hover:text-[var(--rk-text)]",
             )}
           >
             <HugeiconsIcon

@@ -26,6 +26,12 @@ These were left as Terax on purpose in phase 1. Each needs a migration or a rele
 ## Handshake
 
 - [ ] **Handshake polish:** the owner wants richer animation and extras later.
+- [ ] **Terminal font:** Geist Mono with a Nerd Font fallback chain (the UI font is Geist since upgrade 1; terminal and editor fonts are unchanged).
+- [ ] **Changes switch** (upgrade 3) and **session rail** (upgrade 4) are next; the Files/Git switch and the right rail in the board are not built yet.
+- [ ] **macOS traffic lights:** the top bar is now 56px tall but the native traffic lights keep their default position near the top. Centering them needs `trafficLightPosition` in `src-tauri/tauri.conf.json` (Rust/config follow-up, not done).
+- [ ] **Git count freshness:** the status bar shows `sourceControl.changedCount`, which refreshes only while a source-control consumer is on screen, so it can lag until the panel is opened.
+- [ ] Before the public release, review Anthropic's brand guidelines for using the Claude spark in a third-party interface; if needed, switch to a neutral agent icon.
+- [ ] **Claude "started" versus "working":** the activity store maps the `started` signal to `working`, so a freshly launched Claude shows the turning spark until its first finish or attention. A static spark at launch would need the store to keep a separate started phase.
 - [ ] **Settings toggle** for the handshake. Today it is controlled only by `localStorage["rokk.handshake"] = "off"` (see `docs/rokk/HANDSHAKE.md`).
 
 ## Executable rename (terax to rokk)
@@ -42,3 +48,4 @@ Renaming the compiled program breaks the places below, so migrate them together 
 ## Upstream merges
 
 - [ ] The Settings window changes live in upstream Terax files (`src-tauri/src/lib.rs` `open_settings_window`, `src/settings/SettingsApp.tsx`). Merge upstream updates to those files with care; the nav itself is isolated in `src/settings/SettingsSidebar.tsx` and `src/settings/settingsNav.ts`. Keep the `with_denylist(&["settings"])` call on the window-state plugin when merging `lib.rs`, or Settings will reopen at a saved size again.
+- [ ] The Graphite surface changes touch upstream Terax theme and layout files (`src/styles/globals.css`, `src/modules/theme/ThemeProvider.tsx`, `index.html`, `settings.html`, `src/modules/tabs/TabBar.tsx`, `src/modules/sidebar/SidebarRail.tsx`, `src/modules/header/SearchInline.tsx`, `src/modules/statusbar/StatusBar.tsx`, `src/modules/statusbar/CwdBreadcrumb.tsx`). Merge upstream updates to them with care; the tokens themselves live in `src/styles/rokk-surfaces.css`.

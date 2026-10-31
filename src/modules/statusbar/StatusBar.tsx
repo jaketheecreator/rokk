@@ -10,9 +10,11 @@ import {
   AiStatusBarControls,
 } from "@/modules/ai/components/AiStatusBarControls";
 import { LspStatusPill } from "@/modules/lsp";
+import type { Tab } from "@/modules/tabs";
 import type { WorkspaceEnv } from "@/modules/workspace";
-import { IncognitoIcon } from "@hugeicons/core-free-icons";
+import { GitBranchIcon, IncognitoIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { AgentStatePill } from "./AgentStatePill";
 import { CwdBreadcrumb } from "./CwdBreadcrumb";
 import { DiagnosticsBadge } from "./DiagnosticsBadge";
 import { WorkspaceEnvSelector } from "./WorkspaceEnvSelector";
@@ -29,6 +31,9 @@ type Props = {
   /** Only rendered when the AI panel is open and a key is loaded. */
   hasComposer: boolean;
   privateActive: boolean;
+  activeTab?: Tab;
+  gitBranch?: string | null;
+  changedCount?: number;
 };
 
 export function StatusBar({
@@ -41,11 +46,14 @@ export function StatusBar({
   onOpenAi,
   hasComposer,
   privateActive,
+  activeTab,
+  gitBranch,
+  changedCount = 0,
 }: Props) {
   const panelOpen = useChatStore((s) => s.panelOpen);
 
   return (
-    <footer className="flex h-8 shrink-0 items-center justify-between gap-3 pl-3 pr-4 text-[11px]">
+    <footer className="flex h-12 shrink-0 items-center justify-between gap-3 px-[18px] text-[11px] text-[var(--rk-text-2)]">
       <div className="flex min-w-0 flex-1 items-center gap-2">
         <WorkspaceEnvSelector onSelect={onWorkspaceChange} />
         <CwdBreadcrumb cwd={cwd} filePath={filePath} home={home} onCd={onCd} />
@@ -69,8 +77,18 @@ export function StatusBar({
           </Tooltip>
         ) : null}
       </div>
-      <div className="flex shrink-0 items-center gap-1.5">
+      <div className="flex shrink-0 items-center gap-2.5">
         <AgentStatusPill onClick={onOpenMini} />
+        <AgentStatePill activeTab={activeTab} />
+        {gitBranch ? (
+          <span className="flex h-7 shrink-0 items-center gap-1.5 text-[12.5px] text-[var(--rk-text-2)]">
+            <HugeiconsIcon icon={GitBranchIcon} size={13} strokeWidth={1.75} />
+            <span>
+              {gitBranch}
+              {changedCount > 0 ? ` · ${changedCount} changed` : ""}
+            </span>
+          </span>
+        ) : null}
         {panelOpen && hasComposer ? (
           <AiStatusBarControls />
         ) : (

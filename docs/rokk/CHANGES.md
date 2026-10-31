@@ -90,6 +90,74 @@ Modified:
   - Sections, labels, icons, order, tab state, `?tab=` deep links and the `terax:settings-tab` event are unchanged.
 - `docs/rokk/TODO.md`: added handshake polish and the upstream-merge note.
 
+## Surfaces: "A · Graphite" (upgrade 1)
+
+Added:
+
+- `src/styles/rokk-surfaces.css`: the three-layer surface tokens (window, panel, canvas), shape tokens, state colors, Geist `@font-face`, and the pane overrides.
+- `public/fonts/geist/Geist-Regular.woff2`, `Geist-Medium.woff2`, `Geist-SemiBold.woff2`: Geist Sans from the official `geist` 1.9.0 npm tarball (sha512 verified against the registry), as static assets, not a dependency.
+- `public/fonts/geist/OFL.txt`: the Geist license (SIL OFL 1.1), copied from the same tarball.
+- `docs/rokk/DESIGN_TOKENS.md`: every token, its values and where it is applied.
+
+Modified:
+
+- `src/styles/globals.css`: one import line for `rokk-surfaces.css`, and Geist first in `--font-sans`.
+- `src/modules/theme/ThemeProvider.tsx`: sets `data-rk-surface="graphite"` on `<html>` while the default theme is active, and removes it otherwise.
+- `index.html`, `settings.html`: the pre-paint script sets the same attribute from the theme fast path (no new colors).
+- `src/modules/tabs/TabBar.tsx`: the active tab pill, tab triggers and rename field use `--rk-active`, `--rk-text`, `--rk-text-2`, `--rk-edge` and `--rk-radius-sm`. The active tab is medium weight, and hover is 150 ms.
+- `src/modules/sidebar/SidebarRail.tsx`: the Files/Git switch uses the field background with an `--rk-active` segment and `--rk-radius-sm`.
+- `src/modules/header/SearchInline.tsx`: the search field uses `--rk-field`, `--rk-edge`, `--rk-radius-sm` and the text tokens.
+- `src/modules/statusbar/StatusBar.tsx`: status bar text uses `--rk-text-2`. The bar keeps the window layer behind it, so vibrancy still shows through.
+- `src/modules/statusbar/CwdBreadcrumb.tsx`: breadcrumb pills use the text tokens, `--rk-field` hover and `--rk-radius-sm`.
+- `NOTICE`: credit line for Geist (SIL OFL 1.1).
+- `docs/rokk/TODO.md`: terminal font follow-up and the upstream-merge note for theme and layout files.
+
+## Frame and agent state (upgrade 2)
+
+Added:
+
+- `src/components/brand/RokkStateMark.tsx`: the Rokk mark as an agent state (idle, working, attention, done).
+- `src/modules/tabs/lib/tabMarkState.ts` and `tabMarkState.test.ts`: pure state-to-mark mapping, labels, and the "finished until focused" set.
+- `src/modules/statusbar/AgentStatePill.tsx`: the status bar pill for the active tab's agent state.
+- `src/modules/statusbar/lib/agentPill.ts` and `agentPill.test.ts`: duration formatting, pill styles, and the per-pty working start time (the store records none).
+
+Modified:
+
+- `src/styles/rokk-surfaces.css`: bottom panel gutter, and the stepped working animation for the mark.
+- `src/modules/header/Header.tsx`: top bar height, padding, gaps and icon buttons.
+- `src/modules/header/SearchInline.tsx`: 210 x 34 search pill with a mono shortcut hint; placeholder is now just the label.
+- `src/modules/agents/components/NotificationBell.tsx`: the bell button matches the other top bar icon buttons (no logic change).
+- `src/modules/tabs/TabBar.tsx`: tab sizes and weights; terminal tab icons are now `RokkStateMark` with hidden state text.
+- `src/modules/explorer/FileExplorer.tsx`, `src/modules/explorer/TreeRow.tsx`: panel header and 29px rows (`ROW_HEIGHT` kept in sync).
+- `src/modules/sidebar/SidebarRail.tsx`: Files/Git switch sizes and radii.
+- `src/modules/statusbar/StatusBar.tsx`: 48px bar, the agent state pill and git text (new optional props `activeTab`, `gitBranch`, `changedCount`).
+- `src/modules/statusbar/CwdBreadcrumb.tsx`: breadcrumb pills and 13px chevrons.
+- `src/modules/statusbar/WorkspaceEnvSelector.tsx`: quiet `--rk-text-2` styling.
+- `src/modules/ai/components/AiStatusBarControls.tsx`: "Open AI agent" in the pill style (no logic change).
+- `src/app/App.tsx`: three props on the `StatusBar` mount line (`activeTab`, `sourceControl.repo?.branch`, `sourceControl.changedCount`).
+- `docs/rokk/DESIGN_TOKENS.md`, `docs/rokk/TODO.md`: frame values and follow-ups.
+
+## Claude identity on tabs (upgrade 2b)
+
+Modified:
+
+- `src/styles/rokk-surfaces.css`: `--rk-claude`, `--rk-claude-text` and `--rk-claude-tint`, plus the stepped spark turn (`steps(8, end)`, still with reduced motion).
+- `src/components/brand/RokkStateMark.tsx`: new `agent` prop. Claude renders the existing Hugeicons `ClaudeIcon` spark with the same dot badges; other agents keep the Rokk mark.
+- `src/modules/tabs/lib/tabMarkState.ts`, `tabMarkState.test.ts`: `isClaudeAgent`, a "Claude is ready" label for idle Claude, and an exited agent no longer keeps an unseen finish.
+- `src/modules/tabs/TabBar.tsx`: passes the detected agent to the mark.
+- `src/modules/statusbar/lib/agentPill.ts`, `agentPill.test.ts`: the working pill uses the Claude colors for Claude.
+- `src/modules/statusbar/AgentStatePill.tsx`: passes the agent to the pill style and the mark.
+- `docs/rokk/DESIGN_TOKENS.md`, `docs/rokk/TODO.md`: Claude tokens, contrast results and the brand review note.
+
+## Tab edge and bar spacing (upgrade 2c)
+
+Modified (classes and CSS only, no behavior change):
+
+- `src/modules/tabs/TabBar.tsx`: the sliding active-tab pill no longer has `ring-1 ring-inset ring-[var(--rk-edge)]`; it is a flat `--rk-active` fill. The trigger keeps its focus-visible ring.
+- `src/styles/rokk-surfaces.css`: removed the 8px bottom padding under the panels (`main.zoom-content`).
+- `src/modules/statusbar/CwdBreadcrumb.tsx`, `src/modules/statusbar/AgentStatePill.tsx`, `src/modules/statusbar/StatusBar.tsx`, `src/modules/statusbar/WorkspaceEnvSelector.tsx`, `src/modules/ai/components/AiStatusBarControls.tsx`, `src/modules/ai/components/AgentStatusPill.tsx`: every status bar item is 28px tall (`h-7`), so it sits 10px from both edges of the 48px bar.
+- `docs/rokk/DESIGN_TOKENS.md`: bar and item heights, no gap under the panels.
+
 ## Visible strings left as Terax on purpose
 
 - `src/modules/updater/UpdaterDialog.tsx`: "Terax vX is available", "Restart Terax", and the `Terax_*.deb` / `Terax-*.rpm` commands. The updater still serves Terax releases, so this text is accurate until the feed changes (see `docs/rokk/TODO.md`).

@@ -16,6 +16,9 @@
                 ? "dark"
                 : "light";
           document.documentElement.classList.add(resolved);
+          var id = localStorage.getItem("terax-ui-theme-id-shadow");
+          if (!id || id === "terax-default")
+            document.documentElement.dataset.rkSurface = "graphite";
           document.documentElement.style.backgroundColor =
             resolved === "dark" ? "#141414" : "#ffffff";
         } catch (e) {}

@@ -61,7 +61,7 @@ function EntryRowImpl(props: EntryRowProps) {
   if (isRenaming) {
     return (
       <div
-        className="flex h-6 w-full min-w-0 items-center gap-2 px-1.5 text-[13px]"
+        className="flex h-[29px] w-full min-w-0 items-center gap-2 px-1.5 text-[13.5px]"
         style={{ paddingLeft }}
       >
         <span className="size-3.5 shrink-0" />
@@ -106,7 +106,7 @@ function EntryRowImpl(props: EntryRowProps) {
         !isDir && !multiSelectActive && actions.beginRename(path)
       }
       className={cn(
-        "group flex h-6 w-full min-w-0 cursor-pointer items-center gap-2 rounded-sm px-1.5 text-left text-[13px] transition-colors hover:bg-accent/70",
+        "group flex h-[29px] w-full min-w-0 cursor-pointer items-center gap-2 rounded-sm px-1.5 text-left text-[13.5px] transition-colors hover:bg-accent/70",
         isSelected
           ? "bg-accent text-foreground"
           : gitignored
@@ -167,7 +167,7 @@ export function PendingRow({
 }: PendingRowProps) {
   return (
     <div
-      className="flex h-6 w-full min-w-0 items-center gap-2 px-1.5 text-[13px]"
+      className="flex h-[29px] w-full min-w-0 items-center gap-2 px-1.5 text-[13.5px]"
       style={{ paddingLeft: 6 + depth * 12 }}
     >
       <span className="size-3.5 shrink-0" />
@@ -198,7 +198,7 @@ export function StatusRow({
   return (
     <div
       className={cn(
-        "h-6 truncate px-2 text-[11px] leading-6",
+        "h-[29px] truncate px-2 text-[11px] leading-[29px]",
         tone === "error" ? "text-destructive" : "text-muted-foreground",
       )}
       style={{ paddingLeft: 6 + depth * 12 + 18 }}

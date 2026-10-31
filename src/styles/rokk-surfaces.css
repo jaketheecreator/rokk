@@ -1,0 +1,160 @@
+/* Rokk "A · Graphite" surface system. See docs/rokk/DESIGN_TOKENS.md.
+ *
+ * Three layers share one shape language: the window (header, status bar and
+ * the gaps), the panel (left sidebar) and the canvas (terminal, editor,
+ * preview). Every theme gets the shape tokens; the color tokens fall back to
+ * each theme's own variables, so only the default theme looks different.
+ *
+ * Imported at the top of globals.css, so it comes before the base rules. The
+ * overrides below use one more selector than the rules they replace, which
+ * keeps them winning without !important while `html[data-vibrancy="on"]`
+ * (same weight, later) still turns the window layer translucent. */
+
+@font-face {
+  font-family: "Geist";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/geist/Geist-Regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Geist";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/geist/Geist-Medium.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Geist";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/geist/Geist-SemiBold.woff2") format("woff2");
+}
+
+/* Shape tokens and per-theme color fallbacks (every theme). */
+:root {
+  --rk-radius: 14px;
+  --rk-radius-sm: 10px;
+  --rk-gap: 8px;
+
+  --rk-window: var(--frame);
+  --rk-panel: var(--background);
+  --rk-canvas: var(--background);
+  --rk-edge: var(--border);
+  --rk-text: var(--foreground);
+  --rk-text-2: var(--muted-foreground);
+  --rk-active: color-mix(in oklab, var(--foreground) 7%, transparent);
+  --rk-field: color-mix(in oklab, var(--foreground) 4%, transparent);
+
+  /* Light state colors are darkened slightly from the board so a chip on the
+   * window layer keeps 4.5:1 (see DESIGN_TOKENS.md). */
+  --rk-working: #0959ba;
+  --rk-attention: #994306;
+  --rk-done: #166a46;
+  --rk-working-tint: color-mix(in srgb, var(--rk-working) 10%, transparent);
+  --rk-attention-tint: color-mix(in srgb, var(--rk-attention) 10%, transparent);
+  --rk-done-tint: color-mix(in srgb, var(--rk-done) 10%, transparent);
+
+  /* Claude identity. Light uses the deeper orange so the icon keeps 3:1 on
+   * every surface; pill text needs 4.5:1, so it gets its own darker shade. */
+  --rk-claude: #c15f3c;
+  --rk-claude-text: #92482d;
+  --rk-claude-tint: color-mix(in srgb, var(--rk-claude) 10%, transparent);
+}
+:root.dark {
+  --rk-working: #6ca8ff;
+  --rk-attention: #f2b34c;
+  --rk-done: #5cc98a;
+  --rk-working-tint: color-mix(in srgb, var(--rk-working) 16%, transparent);
+  --rk-attention-tint: color-mix(in srgb, var(--rk-attention) 16%, transparent);
+  --rk-done-tint: color-mix(in srgb, var(--rk-done) 16%, transparent);
+  --rk-claude: #d97757;
+  --rk-claude-text: var(--rk-claude);
+  --rk-claude-tint: color-mix(in srgb, var(--rk-claude) 16%, transparent);
+}
+
+/* Default theme only. ThemeProvider (and the pre-paint script) set
+ * data-rk-surface while the default theme is active; other themes write
+ * their own variables inline and never see these values. */
+html[data-rk-surface="graphite"] {
+  --rk-window: #e7e4dd;
+  --rk-panel: #f6f4ef;
+  --rk-canvas: #ffffff;
+  --rk-edge: rgba(0, 0, 0, 0.08);
+  --rk-text: #1b1b19;
+  --rk-text-2: #66635c;
+  --rk-active: #ffffff;
+  --rk-field: #eae7e0;
+
+  /* Existing tokens follow the layers. The terminal background is the
+   * theme's terminal color field, tied to the canvas so the WebGPU canvas
+   * and its pane never show a seam. */
+  --background: var(--rk-canvas);
+  --foreground: var(--rk-text);
+  --card: var(--rk-panel);
+  --muted-foreground: var(--rk-text-2);
+  --border: var(--rk-edge);
+  --frame: var(--rk-window);
+  --terminal-background: var(--rk-canvas);
+  --terminal-cursor-accent: var(--rk-canvas);
+}
+html.dark[data-rk-surface="graphite"] {
+  --rk-window: #0f0f0e;
+  --rk-panel: #1a1a18;
+  --rk-canvas: #141413;
+  --rk-edge: rgba(255, 255, 255, 0.07);
+  --rk-text: #ecebe8;
+  --rk-text-2: #a19f98;
+  --rk-active: #262623;
+  --rk-field: #242421;
+}
+
+/* Panels: one radius and hairline for all themes; the left panel sits on its
+ * own layer, the workspace pane is the canvas. No shadow. */
+:root .terax-pane {
+  border-radius: var(--rk-radius);
+  border-color: var(--rk-edge);
+  background: var(--rk-canvas);
+  box-shadow: none;
+}
+:root #sidebar .terax-pane {
+  background: var(--rk-panel);
+}
+
+/* Agent state mark (RokkStateMark): the small square sits at the top right
+ * while working and toggles with the bottom left every 700ms. Stepped timing
+ * (steps(1, end)) keeps the loop to a few repaints, as the motion budget asks. */
+[data-rk-mark="working"] .rk-sm-hole {
+  transform: translate(30px, -30px);
+  animation: rk-sm-hop 1.4s steps(1, end) infinite;
+}
+@keyframes rk-sm-hop {
+  0% {
+    transform: translate(30px, -30px);
+  }
+  50% {
+    transform: translate(0px, 0px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-rk-mark="working"] .rk-sm-hole {
+    animation: none;
+  }
+}
+
+/* Claude spark while working: eight discrete steps per turn (steps(8, end)),
+ * so the loop repaints eight times per 1.2s instead of every frame. */
+[data-rk-mark="working"] .rk-spark {
+  animation: rk-spark-turn 1.2s steps(8, end) infinite;
+}
+@keyframes rk-spark-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-rk-mark="working"] .rk-spark {
+    animation: none;
+  }
+}

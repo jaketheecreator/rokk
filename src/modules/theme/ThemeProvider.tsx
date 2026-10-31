@@ -139,10 +139,13 @@ export function ThemeProvider({ children, defaultMode = "system" }: ThemeProvide
     [effectiveId, customThemes],
   );
   useEffect(() => {
+    const root = document.documentElement;
     if (effectiveId === DEFAULT_THEME_ID) {
+      root.dataset.rkSurface = "graphite";
       clearTheme();
       return;
     }
+    delete root.dataset.rkSurface;
     applyTheme(activeTheme, resolvedMode);
   }, [effectiveId, activeTheme, resolvedMode]);
 

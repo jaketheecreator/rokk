@@ -247,12 +247,12 @@ export function NotificationBell({ onActivate, onActivateLocal }: Props) {
         <Button
           variant="ghost"
           size="icon"
-          className="relative size-7 shrink-0 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+          className="relative size-[31px] shrink-0 rounded-[8px] p-[7px] text-[var(--rk-text-2)] transition-colors duration-150 ease-[ease] hover:bg-[var(--rk-field)] hover:text-[var(--rk-text)]"
           title="Agent notifications"
         >
           <HugeiconsIcon
             icon={Notification01Icon}
-            size={16}
+            size={17}
             strokeWidth={1.75}
           />
           {badge > 0 ? (

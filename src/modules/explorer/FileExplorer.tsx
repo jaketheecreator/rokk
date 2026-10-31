@@ -120,7 +120,7 @@ type Row =
       message: string;
     };
 
-const ROW_HEIGHT = 24;
+const ROW_HEIGHT = 29;
 const PASTE_HINT = IS_MAC ? "⌘V" : "Ctrl+V";
 const OVERSCAN = 8;
 
@@ -676,16 +676,15 @@ export const FileExplorer = memo(
         tabIndex={0}
         onKeyDown={handleKeyDown}
       >
-        <div className="flex h-8 shrink-0 items-center gap-1 border-b border-border/60 px-2">
+        <div className="flex shrink-0 items-center gap-1 px-[14px] pt-[14px] pb-[10px]">
           <span
-            className="flex flex-1 items-center truncate text-xs font-medium text-foreground/80"
+            className="flex flex-1 items-center gap-2 truncate text-[14.5px] font-semibold text-[var(--rk-text)]"
             title={rootPath}
           >
             <FolderIcon
               name={basename(rootPath)}
-              height={15}
-              width={15}
-              className="mx-1.5"
+              height={17}
+              width={17}
             />
             {basename(rootPath)}
           </span>
@@ -788,7 +787,7 @@ export const FileExplorer = memo(
               >
                 {pendingAtRoot ? (
                   <div
-                    className="flex h-6 w-full min-w-0 items-center gap-2 px-1.5 text-[13px]"
+                    className="flex h-[29px] w-full min-w-0 items-center gap-2 px-1.5 text-[13.5px]"
                     style={{ paddingLeft: 6 }}
                   >
                     <span className="size-3.5 shrink-0" />

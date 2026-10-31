@@ -104,11 +104,11 @@ export function Header({
     <Button
       variant="ghost"
       size="icon"
-      className="size-7 shrink-0 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+      className="size-[31px] shrink-0 rounded-[8px] p-[7px] text-[var(--rk-text-2)] transition-colors duration-150 ease-[ease] hover:bg-[var(--rk-field)] hover:text-[var(--rk-text)]"
       onClick={onOpenSettings}
       title="Settings"
     >
-      <HugeiconsIcon icon={Settings01Icon} size={15} strokeWidth={1.75} />
+      <HugeiconsIcon icon={Settings01Icon} size={17} strokeWidth={1.75} />
     </Button>
   );
 
@@ -116,19 +116,19 @@ export function Header({
     <div
       ref={rootRef}
       data-tauri-drag-region
-      className={`flex h-10 shrink-0 items-center gap-2 select-none ${
-        IS_MAC ? "pr-2 pl-20" : "pr-0 pl-2"
+      className={`flex h-14 shrink-0 items-center gap-2.5 select-none max-[768px]:h-13 ${
+        IS_MAC ? "pr-[18px] pl-20" : "pr-0 pl-[18px]"
       }`}
     >
-      <div className="flex shrink-0 items-center gap-0.5">
+      <div className="flex shrink-0 items-center gap-2.5">
         <Button
           onClick={onToggleSidebar}
           title="Toggle sidebar"
           variant="ghost"
           size="icon-sm"
-          className="shrink-0 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+          className="size-[31px] shrink-0 rounded-[8px] p-[7px] text-[var(--rk-text-2)] transition-colors duration-150 ease-[ease] hover:bg-[var(--rk-field)] hover:text-[var(--rk-text)]"
         >
-          <HugeiconsIcon icon={SidebarLeftIcon} size={18} strokeWidth={1.75} />
+          <HugeiconsIcon icon={SidebarLeftIcon} size={17} strokeWidth={1.75} />
         </Button>
 
         <Button
@@ -136,9 +136,9 @@ export function Header({
           variant="ghost"
           onClick={onOpenCommandPalette}
           title="Command palette"
-          className="shrink-0 gap-1.5 rounded-md px-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+          className="size-[31px] shrink-0 rounded-[8px] p-[7px] text-[var(--rk-text-2)] transition-colors duration-150 ease-[ease] hover:bg-[var(--rk-field)] hover:text-[var(--rk-text)]"
         >
-          <HugeiconsIcon icon={CommandIcon} size={14} strokeWidth={1.75} />
+          <HugeiconsIcon icon={CommandIcon} size={17} strokeWidth={1.75} />
         </Button>
 
         {!IS_MAC && (
@@ -158,7 +158,7 @@ export function Header({
       )}
 
       <div
-        className="flex min-w-0 flex-1 items-center gap-2"
+        className="flex min-w-0 flex-1 items-center gap-2.5"
         data-tauri-drag-region
         onContextMenu={(e) => {
           // Empty chrome falls through to WebKit Reload, which reloads the

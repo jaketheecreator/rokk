@@ -12,9 +12,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { RokkStateMark } from "@/components/brand/RokkStateMark";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { AgentIcon } from "@/modules/agents/lib/agentIcon";
 import type { AgentLaunchRequest } from "@/modules/agents/lib/launcher";
 import {
   ALL_LANGUAGES,
@@ -31,13 +31,10 @@ import {
   ArrowRight01Icon,
   Cancel01Icon,
   CancelCircleIcon,
-  CheckmarkCircle01Icon,
   Clock01Icon,
-  ComputerTerminal02Icon,
   GitCompareIcon,
   Globe02Icon,
   IncognitoIcon,
-  Message02Icon,
   PencilEdit02Icon,
   Tick02Icon,
 } from "@hugeicons/core-free-icons";
@@ -52,6 +49,14 @@ import {
 } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { selectTabAgentStatus } from "./lib/tabAgentStatus";
+import {
+  clearTabFinished,
+  firstAgent,
+  hasUnseenFinish,
+  markStateLabel,
+  noteTabFinished,
+  tabMarkState,
+} from "./lib/tabMarkState";
 import { labelFor } from "./lib/tabLabel";
 import type { EditorTab, Tab, TerminalTab } from "./lib/useTabs";
 import { NewTabMenu } from "./NewTabMenu";
@@ -213,18 +218,18 @@ export function TabBar({
       data-tauri-drag-region
       className="min-w-0 shrink overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
-      <div className="flex w-max items-center gap-0.5">
+      <div className="flex w-max items-center gap-1">
         <Tabs
           value={String(activeId)}
           onValueChange={(v) => onSelect(Number(v))}
         >
           <TabsList
             ref={listRef}
-            className="relative h-7 w-max gap-0.5 bg-transparent p-0"
+            className="relative h-[34px] w-max gap-1 bg-transparent p-0"
           >
             <span
               aria-hidden
-              className="pointer-events-none absolute left-0 top-1/2 h-7 rounded-md bg-foreground/[0.07] shadow-sm ring-1 ring-inset ring-foreground/[0.05]"
+              className="pointer-events-none absolute left-0 top-1/2 h-[34px] rounded-[var(--rk-radius-sm)] bg-[var(--rk-active)]"
               style={
                 pill
                   ? {
@@ -262,8 +267,8 @@ export function TabBar({
                     <div
                       data-tab-id={t.id}
                       className={cn(
-                        "flex h-7 shrink-0 items-center gap-1.5 rounded-md bg-accent text-xs text-foreground",
-                        compact ? "px-1.5" : "px-2",
+                        "flex h-[34px] shrink-0 items-center gap-[9px] rounded-[var(--rk-radius-sm)] bg-[var(--rk-active)] text-[13px] font-semibold text-[var(--rk-text)]",
+                        compact ? "px-2" : "px-[15px]",
                       )}
                     >
                       <TabIcon tab={t} />
@@ -345,22 +350,22 @@ export function TabBar({
                     }
                   }}
                   className={cn(
-                    "group relative z-[1] h-7 shrink-0 justify-between gap-1.5 rounded-md bg-transparent text-xs transition-colors data-active:bg-transparent dark:data-active:bg-transparent",
+                    "group relative z-[1] h-[34px] shrink-0 justify-between gap-1.5 rounded-[var(--rk-radius-sm)] bg-transparent text-[13px] font-medium transition-colors duration-150 ease-[ease] data-active:bg-transparent dark:data-active:bg-transparent",
                     isNew && "terax-tab-in",
                     isActive
-                      ? "text-foreground dark:text-foreground"
-                      : "text-muted-foreground hover:text-foreground/80 dark:text-muted-foreground",
+                      ? "font-semibold text-[var(--rk-text)] dark:text-[var(--rk-text)]"
+                      : "text-[var(--rk-text-2)] hover:text-[var(--rk-text)] dark:text-[var(--rk-text-2)]",
                     draggingId === t.id && "opacity-50",
                     compact
-                      ? "px-1.5!"
+                      ? "px-2!"
                       : tabs.length === 1
-                        ? "px-2!"
-                        : "ps-2! pe-1!",
+                        ? "px-[15px]!"
+                        : "ps-[15px]! pe-2!",
                   )}
                 >
                   <span
                     className={cn(
-                      "flex min-w-0 items-center gap-1.5",
+                      "flex min-w-0 items-center gap-[9px]",
                       compact ? "max-w-48" : "max-w-80",
                     )}
                   >
@@ -462,7 +467,7 @@ export function TabBar({
                         </DropdownMenuContent>
                       </DropdownMenu>
                     ) : (
-                      <TabIcon tab={t} />
+                      <TabIcon tab={t} active={isActive} />
                     )}
                     {/* Preview tabs use italic to signal the transient state,
                         matching the visual convention from VSCode. */}
@@ -624,49 +629,41 @@ function terminalPtyIds(tab: TerminalTab): number[] {
  * stable, so an agent signal on one tab re-renders only that tab's icon.
  * Non-terminal tabs never reach this component and subscribe to nothing.
  */
-function TerminalTabIcon({ tab }: { tab: TerminalTab }) {
-  const agentStatus = useAgentActivityStore(
-    useShallow((s) => selectTabAgentStatus(s, terminalPtyIds(tab))),
+function TerminalTabIcon({
+  tab,
+  active,
+}: {
+  tab: TerminalTab;
+  active: boolean;
+}) {
+  const status = useAgentActivityStore(
+    useShallow((s) => {
+      const ptyIds = terminalPtyIds(tab);
+      const tabStatus = selectTabAgentStatus(s, ptyIds);
+      return {
+        state: tabStatus.state,
+        agent: tabStatus.agent ?? firstAgent(s.agents, ptyIds),
+      };
+    }),
   );
-  if (agentStatus.state === "attention") {
-    return (
-      <HugeiconsIcon
-        icon={Message02Icon}
-        size={14}
-        strokeWidth={2}
-        className="shrink-0"
-      />
-    );
-  }
-  if (agentStatus.state === "finished") {
-    return (
-      <HugeiconsIcon
-        icon={CheckmarkCircle01Icon}
-        size={14}
-        strokeWidth={2}
-        className="shrink-0"
-      />
-    );
-  }
-  if (
-    (agentStatus.state === "working" || agentStatus.state === "idle") &&
-    agentStatus.agent
-  ) {
-    return (
-      <AgentIcon agent={agentStatus.agent} size={14} className="shrink-0" />
-    );
-  }
+  useEffect(() => {
+    if (active) clearTabFinished(tab.id);
+    else if (status.state === "finished") noteTabFinished(tab.id, false);
+  }, [active, status.state, tab.id]);
+  const mark = tabMarkState(status.state, {
+    active,
+    unseenDone: hasUnseenFinish(tab.id),
+  });
+  const label = markStateLabel(mark, status.agent);
   return (
-    <HugeiconsIcon
-      icon={ComputerTerminal02Icon}
-      size={14}
-      strokeWidth={2}
-      className="shrink-0"
-    />
+    <>
+      <RokkStateMark state={mark} agent={status.agent} />
+      {label ? <span className="sr-only">{label}</span> : null}
+    </>
   );
 }
 
-export function TabIcon({ tab }: { tab: Tab }) {
+export function TabIcon({ tab, active = false }: { tab: Tab; active?: boolean }) {
   if (tab.kind === "editor" || tab.kind === "markdown") {
     return (
       <FileIcon
@@ -729,7 +726,7 @@ export function TabIcon({ tab }: { tab: Tab }) {
       />
     );
   }
-  return <TerminalTabIcon tab={tab} />;
+  return <TerminalTabIcon tab={tab} active={active} />;
 }
 
 function TabRenameInput({

@@ -83,8 +83,8 @@ export function AiOpenButton({ onOpen }: { onOpen: () => void }) {
       type="button"
       onClick={onOpen}
       className={cn(
-        "flex h-6 items-center gap-1.5 rounded-md border border-border/60 bg-card px-2 text-xs",
-        "text-muted-foreground transition-colors hover:border-border hover:bg-accent hover:text-foreground",
+        "flex h-7 items-center gap-1.5 rounded-full bg-[var(--rk-field)] px-3 text-[12.5px] font-medium",
+        "text-[var(--rk-text)] transition-colors duration-150 ease-[ease] hover:bg-[var(--rk-active)]",
         "animate-in slide-in-from-top-2 duration-200 ease-out",
       )}
       title="Open AI agent"

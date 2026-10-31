@@ -71,8 +71,8 @@ export const SearchInline = forwardRef<SearchInlineHandle, Props>(
     const baseLabel = target?.kind === "git-history" ? "Git search" : "Search";
 
     const placeholder = useMemo(() => {
-      return shortcutText ? `${baseLabel} (${shortcutText})` : baseLabel;
-    }, [baseLabel, shortcutText]);
+      return baseLabel;
+    }, [baseLabel]);
 
     const tooltipTitle = useMemo(() => {
       return shortcutText ? `${baseLabel} (${shortcutText})` : baseLabel;
@@ -134,22 +134,22 @@ export const SearchInline = forwardRef<SearchInlineHandle, Props>(
 
     return (
       <div
-        className="relative h-7 shrink-0 transition-[width] duration-200 ease-out"
-        style={{ width: expanded ? 192 : 28 }}
+        className="relative h-[34px] shrink-0 transition-[width] duration-200 ease-out"
+        style={{ width: expanded ? 210 : 31 }}
       >
         {expanded ? (
           <div className="absolute inset-0 animate-in fade-in-0 duration-150">
             <HugeiconsIcon
               icon={Search01Icon}
-              size={13}
+              size={14}
               strokeWidth={1.75}
-              className="pointer-events-none absolute top-1/2 left-2 -translate-y-1/2 text-muted-foreground"
+              className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[var(--rk-text-2)]"
             />
             <Input
               ref={setInputRef}
               value={q}
               placeholder={placeholder}
-              className="h-7 w-full bg-muted/80 pr-7 pl-7 text-[13px]! placeholder:text-muted-foreground/70 focus-visible:ring-0"
+              className="h-[34px] w-full rounded-[var(--rk-radius-sm)] border-transparent bg-[var(--rk-field)] pr-12 pl-[34px] text-[13px]! text-[var(--rk-text)] placeholder:text-[var(--rk-text-2)] focus-visible:ring-0"
               onChange={(e) => {
                 const next = e.target.value;
                 setQ(next);
@@ -173,6 +173,14 @@ export const SearchInline = forwardRef<SearchInlineHandle, Props>(
                 }
               }}
             />
+            {!q && shortcutText ? (
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 font-mono text-[11.5px] text-[var(--rk-text-2)]"
+              >
+                {shortcutText}
+              </span>
+            ) : null}
             {q && (
               <button
                 type="button"
@@ -193,11 +201,11 @@ export const SearchInline = forwardRef<SearchInlineHandle, Props>(
             <Button
               variant="ghost"
               size="icon"
-              className="size-7 shrink-0 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="size-[31px] shrink-0 rounded-[8px] p-[7px] text-[var(--rk-text-2)] transition-colors duration-150 ease-[ease] hover:bg-[var(--rk-field)] hover:text-[var(--rk-text)]"
               onClick={focus}
               title={tooltipTitle}
             >
-              <HugeiconsIcon icon={Search01Icon} size={15} strokeWidth={1.75} />
+              <HugeiconsIcon icon={Search01Icon} size={17} strokeWidth={1.75} />
             </Button>
           </div>
         )}

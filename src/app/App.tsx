@@ -1580,6 +1580,9 @@ export default function App() {
               privateActive={
                 activeTab?.kind === "terminal" && activeTab.private === true
               }
+              activeTab={activeTab}
+              gitBranch={sourceControl.repo?.branch}
+              changedCount={sourceControl.changedCount}
             />
           )}
 

@@ -54,7 +54,7 @@ export function CwdBreadcrumb({ cwd, filePath, home, onCd }: Props) {
     const middle = segments.slice(1);
     return (
       <Breadcrumb>
-        <BreadcrumbList className="gap-1 text-xs sm:gap-1.5">
+        <BreadcrumbList className="gap-1.5 text-[12.5px]">
           {first ? (
             <BreadcrumbSegment
               label={first.label}
@@ -75,7 +75,7 @@ export function CwdBreadcrumb({ cwd, filePath, home, onCd }: Props) {
             </span>
           ))}
           <BreadcrumbItem>
-            <BreadcrumbPage className="text-foreground">{name}</BreadcrumbPage>
+            <BreadcrumbPage className="inline-flex h-7 items-center rounded-full bg-[var(--rk-field)] px-3 py-0 text-[12.5px] font-semibold text-[var(--rk-text)]">{name}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -96,7 +96,7 @@ export function CwdBreadcrumb({ cwd, filePath, home, onCd }: Props) {
   const middleParents = parents.slice(1);
   return (
     <Breadcrumb>
-      <BreadcrumbList className="gap-1 text-xs sm:gap-1.5">
+      <BreadcrumbList className="gap-1.5 text-[12.5px]">
         {firstParent ? (
           <BreadcrumbSegment
             label={firstParent.label}
@@ -144,7 +144,7 @@ function BreadcrumbSegment({
           <button type="button" onClick={onClick} className="cursor-pointer">
             <Badge
               variant="outline"
-              className="gap-1 text-muted-foreground hover:text-foreground"
+              className="inline-flex h-7 items-center gap-1 rounded-full border-transparent bg-[var(--rk-field)] px-3 py-0 text-[12.5px] text-[var(--rk-text-2)] transition-colors duration-150 ease-[ease] hover:text-[var(--rk-text)]"
             >
               {isHome ? (
                 <HugeiconsIcon
@@ -158,7 +158,7 @@ function BreadcrumbSegment({
           </button>
         </BreadcrumbLink>
       </BreadcrumbItem>
-      <BreadcrumbSeparator className="[&>svg]:size-3" />
+      <BreadcrumbSeparator className="[&>svg]:size-[13px]" />
     </>
   );
 }
@@ -199,7 +199,7 @@ function CurrentSegmentDropdown({
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <BreadcrumbPage className="flex cursor-pointer items-center gap-1 rounded-sm px-1 py-0.5 text-foreground hover:bg-accent">
+        <BreadcrumbPage className="flex h-7 cursor-pointer items-center gap-1 rounded-full bg-[var(--rk-field)] px-3 py-0 text-[12.5px] font-semibold text-[var(--rk-text)] transition-colors duration-150 ease-[ease] hover:bg-[var(--rk-active)]">
           {label === "~" ? (
             <>
               <HugeiconsIcon
@@ -265,7 +265,7 @@ function CollapsedSegments({
             <button
               type="button"
               title="Show hidden folders"
-              className="flex items-center rounded-sm px-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="flex h-7 items-center rounded-full bg-[var(--rk-field)] px-3 py-0 text-[var(--rk-text-2)] transition-colors duration-150 ease-[ease] hover:bg-[var(--rk-active)] hover:text-[var(--rk-text)]"
             >
               <HugeiconsIcon
                 icon={MoreHorizontalIcon}
@@ -291,7 +291,7 @@ function CollapsedSegments({
           </DropdownMenuContent>
         </DropdownMenu>
       </BreadcrumbItem>
-      <BreadcrumbSeparator className="[&>svg]:size-3" />
+      <BreadcrumbSeparator className="[&>svg]:size-[13px]" />
     </span>
   );
 }

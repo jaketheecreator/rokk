@@ -44,7 +44,7 @@ function WorkspaceEnvSelectorWindows({ onSelect }: Props) {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="flex h-6 shrink-0 items-center gap-1 rounded-sm px-1.5 text-[11px] text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus:outline-none focus-visible:outline-none focus-visible:ring-0 data-[state=open]:bg-accent data-[state=open]:text-foreground"
+          className="flex h-7 shrink-0 items-center gap-1 rounded-sm px-1.5 text-[11px] text-[var(--rk-text-2)] outline-none hover:bg-[var(--rk-field)] hover:text-[var(--rk-text)] focus:outline-none focus-visible:outline-none focus-visible:ring-0 data-[state=open]:bg-accent data-[state=open]:text-foreground"
           title="Workspace environment"
         >
           <HugeiconsIcon
