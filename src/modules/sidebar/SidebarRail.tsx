@@ -1,6 +1,17 @@
 import { cn } from "@/lib/utils";
-import { FolderGitTwoIcon, FolderTreeIcon } from "@hugeicons/core-free-icons";
+import { badgeText } from "@/modules/rokk-changes/lib/changes";
+import {
+  changeCount,
+  startChangesRecorder,
+  subscribeChanges,
+} from "@/modules/rokk-changes/lib/recorder";
+import {
+  FileEditIcon,
+  FolderGitTwoIcon,
+  FolderTreeIcon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { useEffect, useSyncExternalStore } from "react";
 import type { SidebarViewId } from "./types";
 
 // 32px segments plus 4px container padding on each side.
@@ -11,17 +22,37 @@ type RailItem = {
   label: string;
   icon: Parameters<typeof HugeiconsIcon>[0]["icon"];
   badge?: number;
+  /** Rokk Changes badge style (working tint) instead of the git badge. */
+  rokk?: boolean;
 };
 
 type Props = {
   activeView: SidebarViewId;
   onSelectView: (view: SidebarViewId) => void;
   changedCount: number;
+  /** Current project's repo, for the Changes count. */
+  repoRoot?: string | null;
 };
 
-export function SidebarRail({ activeView, onSelectView, changedCount }: Props) {
+export function SidebarRail({
+  activeView,
+  onSelectView,
+  changedCount,
+  repoRoot = null,
+}: Props) {
+  useEffect(() => startChangesRecorder(), []);
+  const sinceClaude = useSyncExternalStore(subscribeChanges, () =>
+    changeCount(repoRoot),
+  );
   const items: RailItem[] = [
     { id: "explorer", label: "Files", icon: FolderTreeIcon },
+    {
+      id: "changes",
+      label: "Changes",
+      icon: FileEditIcon,
+      badge: sinceClaude,
+      rokk: true,
+    },
     {
       id: "source-control",
       label: "Git",
@@ -60,7 +91,11 @@ export function SidebarRail({ activeView, onSelectView, changedCount }: Props) {
               className="shrink-0 transition-[stroke-width] duration-[var(--dur-base)]"
             />
             <span>{item.label}</span>
-            {showBadge ? (
+            {showBadge && item.rokk ? (
+              <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--rk-working-tint)] px-1 text-[11.5px] font-semibold leading-none tabular-nums text-[var(--rk-working)]">
+                {badgeText(item.badge ?? 0)}
+              </span>
+            ) : showBadge ? (
               <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full border border-border/60 bg-card px-1 text-[9px] font-semibold leading-none tabular-nums text-muted-foreground/95">
                 {item.badge! > 99 ? "99+" : item.badge}
               </span>

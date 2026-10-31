@@ -171,6 +171,22 @@ Added:
 
 - `src/modules/editor/lib/lezerHighlightSingleton.test.ts`: fails if the lockfile holds more than one `@lezer/highlight` version, or if `@lezer/javascript` and `@codemirror/language` resolve different copies.
 
+## Changes view (upgrade 3)
+
+Added:
+
+- `src/modules/rokk-changes/lib/changes.ts`, `changes.test.ts`: pure baseline versus current diff, per-repo baselines with a cap, sorting and badge text.
+- `src/modules/rokk-changes/lib/recorder.ts`: the startup recorder. It takes a baseline on Claude `started` and refreshes on `finished` and `attention`, using the existing `git_resolve_repo` and `git_status` commands only.
+- `src/modules/rokk-changes/ChangesView.tsx`, `index.tsx`: the lazy Changes view.
+- `docs/rokk/CHANGES_VIEW.md`: how it works and its limits.
+
+Modified (upstream files):
+
+- `src/modules/sidebar/types.ts`: `SidebarViewId` gains `"changes"`.
+- `src/modules/sidebar/SidebarRail.tsx`: imports, an optional `repoRoot` prop, the recorder start and count subscription, the Changes segment between Files and Git, and its working-tint badge. The Files and Git segments and the Git badge are unchanged.
+- `src/app/App.tsx`: one `React.lazy` line, one `sidebarView === "changes"` branch mounting the view in `<Suspense>`, and the `repoRoot` prop on the `SidebarRail` mount line.
+- `docs/rokk/TODO.md`: phase 2 and the merge note.
+
 ## Visible strings left as Terax on purpose
 
 - `src/modules/updater/UpdaterDialog.tsx`: "Terax vX is available", "Restart Terax", and the `Terax_*.deb` / `Terax-*.rpm` commands. The updater still serves Terax releases, so this text is accurate until the feed changes (see `docs/rokk/TODO.md`).

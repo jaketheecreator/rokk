@@ -150,6 +150,7 @@ const BenchBridge = __TERAX_BENCH__
   : null;
 
 const RokkHandshake = lazy(() => import("@/modules/rokk-handshake"));
+const RokkChanges = lazy(() => import("@/modules/rokk-changes"));
 
 export default function App() {
   const {
@@ -1500,6 +1501,8 @@ export default function App() {
                           pathDropTarget={terminalPathDropTarget}
                           visible={!sidebarCollapsed}
                         />
+                      ) : sidebarView === "changes" ? (
+                        <Suspense fallback={null}><RokkChanges repoRoot={sourceControl.repo?.repoRoot ?? null} onOpenDiff={openGitDiffTab} onOpenFile={handleOpenFile} /></Suspense>
                       ) : (
                         <SourceControlPanel
                           open
@@ -1519,6 +1522,7 @@ export default function App() {
                       activeView={sidebarView}
                       onSelectView={persistSidebarView}
                       changedCount={sourceControl.changedCount}
+                      repoRoot={sourceControl.repo?.repoRoot ?? null}
                     />
                   </div>
                 </div>
