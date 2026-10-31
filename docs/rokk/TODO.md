@@ -25,6 +25,7 @@ These were left as Terax on purpose in phase 1. Each needs a migration or a rele
 
 ## Handshake
 
+- [ ] **Handshake polish:** the owner wants richer animation and extras later.
 - [ ] **Settings toggle** for the handshake. Today it is controlled only by `localStorage["rokk.handshake"] = "off"` (see `docs/rokk/HANDSHAKE.md`).
 
 ## Executable rename (terax to rokk)
@@ -37,3 +38,7 @@ Renaming the compiled program breaks the places below, so migrate them together 
 - [ ] `nix/package.nix` lines 60-62: installs and wraps `usr/bin/terax`.
 - [ ] `scripts/app-lab/run.py` lines 68 and 166: finds the app by the process name `terax`.
 - [ ] `src-tauri/Cargo.toml`: `default-run = "terax"`.
+
+## Upstream merges
+
+- [ ] The Settings window changes live in upstream Terax files (`src-tauri/src/lib.rs` `open_settings_window`, `src/settings/SettingsApp.tsx`). Merge upstream updates to those files with care; the nav itself is isolated in `src/settings/SettingsSidebar.tsx` and `src/settings/settingsNav.ts`. Keep the `with_denylist(&["settings"])` call on the window-state plugin when merging `lib.rs`, or Settings will reopen at a saved size again.

@@ -1,4 +1,3 @@
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WindowControls } from "@/components/WindowControls";
 import { IS_MAC, USE_CUSTOM_WINDOW_CONTROLS } from "@/lib/platform";
 import type { SettingsTab } from "@/modules/settings/openSettingsWindow";
@@ -13,7 +12,6 @@ import {
   SourceCodeIcon,
   UserMultiple02Icon,
 } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { type JSX, useEffect, useState } from "react";
 import { AboutSection } from "./sections/AboutSection";
@@ -23,6 +21,7 @@ import { GeneralSection } from "./sections/GeneralSection";
 import { ModelsSection } from "./sections/ModelsSection";
 import { ShortcutsSection } from "./sections/ShortcutsSection";
 import { ThemesSection } from "./sections/ThemesSection";
+import { SettingsSidebar } from "./SettingsSidebar";
 
 const TABS: {
   id: SettingsTab;
@@ -125,33 +124,17 @@ export function SettingsApp() {
           IS_MAC ? "pr-3 pl-22" : "pr-0 pl-3"
         }`}
       >
-        <Tabs
-          value={active}
-          onValueChange={(v) => setActive(v as SettingsTab)}
-          orientation="horizontal"
-          className="flex-1 items-center"
-          data-tauri-drag-region
-        >
-          <TabsList className="mx-auto h-7 bg-muted/40 px-2">
-            {TABS.map((t) => (
-              <TabsTrigger
-                key={t.id}
-                value={t.id}
-                className="h-6 gap-1.5 px-2.5 text-[11.5px]"
-              >
-                <HugeiconsIcon icon={t.icon} size={12} strokeWidth={1.75} />
-                <span>{t.label}</span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+        <div className="flex-1" data-tauri-drag-region />
         {USE_CUSTOM_WINDOW_CONTROLS && <WindowControls closeOnly />}
       </header>
       <WindowActivityBridge />
 
-      <main className="min-h-0 flex-1 overflow-y-auto px-8 pt-6 pb-7 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="mx-auto w-full max-w-160">
-          {ActiveSection && <ActiveSection />}
+      <main className="min-h-0 flex-1 overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="mx-auto flex w-full max-w-240 gap-12 px-6 pt-6 pb-8 max-[760px]:gap-6">
+          <SettingsSidebar items={TABS} active={active} onSelect={setActive} />
+          <div className="min-w-0 max-w-170 flex-1">
+            {ActiveSection && <ActiveSection />}
+          </div>
         </div>
       </main>
     </div>

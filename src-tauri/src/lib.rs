@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::{Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder};
 #[cfg(target_os = "macos")]
-use tauri::{PhysicalPosition, WindowEvent};
+use tauri::WindowEvent;
 use tauri_plugin_window_state::StateFlags;
 
 /// Drained on first read so HMR / re-mounts can't replay the launch dir.
@@ -85,6 +85,19 @@ const fn settings_always_on_top(is_macos: bool) -> bool {
     !is_macos
 }
 
+const SETTINGS_SIZE: (f64, f64) = (960.0, 680.0);
+const SETTINGS_MIN_SIZE: (f64, f64) = (760.0, 520.0);
+
+/// Fits a (saved or default) Settings size inside 90% of the work area while
+/// keeping the minimum, unless the screen itself is smaller than that.
+fn clamp_settings_size(size: (u32, u32), work: (u32, u32), min: (u32, u32)) -> (u32, u32) {
+    let fit = |value: u32, area: u32, floor: u32| {
+        let max = (u64::from(area) * 9 / 10) as u32;
+        value.max(floor.min(max)).min(max)
+    };
+    (fit(size.0, work.0, min.0), fit(size.1, work.1, min.1))
+}
+
 #[tauri::command]
 async fn open_settings_window(app: tauri::AppHandle, tab: Option<String>) -> Result<(), String> {
     let url_path = match tab.as_deref() {
@@ -107,8 +120,8 @@ async fn open_settings_window(app: tauri::AppHandle, tab: Option<String>) -> Res
 
     let builder = WebviewWindowBuilder::new(&app, "settings", WebviewUrl::App(url_path.into()))
         .title("Settings")
-        .inner_size(900.0, 700.0)
-        .min_inner_size(820.0, 620.0)
+        .inner_size(SETTINGS_SIZE.0, SETTINGS_SIZE.1)
+        .min_inner_size(SETTINGS_MIN_SIZE.0, SETTINGS_MIN_SIZE.1)
         .resizable(true)
         .visible(false)
         .always_on_top(settings_always_on_top(cfg!(target_os = "macos")));
@@ -132,7 +145,6 @@ async fn open_settings_window(app: tauri::AppHandle, tab: Option<String>) -> Res
     #[cfg(any(target_os = "linux", target_os = "windows"))]
     let builder = builder.decorations(false).transparent(true);
 
-    #[cfg_attr(windows, allow(unused_variables))]
     let window = builder.build().map_err(|e| e.to_string())?;
 
     // Some Linux compositors (GNOME/Mutter with CSD-by-default) ignore the
@@ -142,7 +154,26 @@ async fn open_settings_window(app: tauri::AppHandle, tab: Option<String>) -> Res
         let _ = window.set_decorations(false);
     }
 
-    #[cfg(target_os = "macos")]
+    // Settings is denylisted in the window-state plugin, so it always opens at
+    // the default size; keep that inside 90% of the monitor work area.
+    let monitor = app
+        .get_webview_window("main")
+        .and_then(|main| main.current_monitor().ok().flatten())
+        .or_else(|| window.current_monitor().ok().flatten());
+    if let (Some(monitor), Ok(size)) = (monitor, window.inner_size()) {
+        let work = monitor.work_area().size;
+        let scale = monitor.scale_factor();
+        let min = (
+            (SETTINGS_MIN_SIZE.0 * scale).round() as u32,
+            (SETTINGS_MIN_SIZE.1 * scale).round() as u32,
+        );
+        let fitted =
+            clamp_settings_size((size.width, size.height), (work.width, work.height), min);
+        if fitted != (size.width, size.height) {
+            let _ = window.set_size(tauri::PhysicalSize::new(fitted.0, fitted.1));
+        }
+    }
+
     if let Some(main) = app.get_webview_window("main") {
         if let (Ok(main_pos), Ok(main_size), Ok(settings_size)) = (
             main.outer_position(),
@@ -153,10 +184,12 @@ async fn open_settings_window(app: tauri::AppHandle, tab: Option<String>) -> Res
                 + ((main_size.width as i32).saturating_sub(settings_size.width as i32)) / 2;
             let y = main_pos.y
                 + ((main_size.height as i32).saturating_sub(settings_size.height as i32)) / 2;
-            let _ = window.set_position(PhysicalPosition::new(x, y));
+            let _ = window.set_position(tauri::PhysicalPosition::new(x, y));
         } else {
             let _ = window.center();
         }
+    } else {
+        let _ = window.center();
     }
 
     Ok(())
@@ -200,8 +233,10 @@ pub fn run() {
         // paint so the user never sees a transparent window-shadow flash on
         // Windows/Linux.
         .plugin(
+            // Settings always opens at its default size, centered over main.
             tauri_plugin_window_state::Builder::new()
                 .with_state_flags(StateFlags::all() & !StateFlags::VISIBLE)
+                .with_denylist(&["settings"])
                 .build(),
         )
         .plugin(tauri_plugin_autostart::Builder::new().build())
@@ -441,7 +476,10 @@ pub fn run() {
 
 #[cfg(test)]
 mod launch_target_tests {
-    use super::{resolve_launch_target, settings_always_on_top, LaunchEntry, LaunchTarget};
+    use super::{
+        clamp_settings_size, resolve_launch_target, settings_always_on_top, LaunchEntry,
+        LaunchTarget,
+    };
     use std::path::PathBuf;
 
     #[test]
@@ -492,5 +530,25 @@ mod launch_target_tests {
     fn settings_float_only_outside_macos() {
         assert!(!settings_always_on_top(true));
         assert!(settings_always_on_top(false));
+    }
+
+    #[test]
+    fn settings_size_keeps_a_size_that_fits() {
+        assert_eq!(clamp_settings_size((1920, 1360), (3024, 1890), (1520, 1040)), (1920, 1360));
+    }
+
+    #[test]
+    fn settings_size_clamps_to_ninety_percent_of_the_work_area() {
+        assert_eq!(clamp_settings_size((4000, 3000), (3024, 1890), (1520, 1040)), (2721, 1701));
+    }
+
+    #[test]
+    fn settings_size_raises_to_the_minimum() {
+        assert_eq!(clamp_settings_size((300, 200), (3024, 1890), (1520, 1040)), (1520, 1040));
+    }
+
+    #[test]
+    fn settings_size_screen_smaller_than_minimum_wins() {
+        assert_eq!(clamp_settings_size((1520, 1040), (1280, 800), (1520, 1040)), (1152, 720));
     }
 }

@@ -66,6 +66,30 @@ Modified:
 - `src/components/brand/RokkMark.tsx`: exports `BODY_PATH` and `HOLE_PATH` so the handshake reuses the mark shapes.
 - `docs/rokk/TODO.md`: added the Settings toggle and the executable rename migration.
 
+## Settings window (phases 3 and 3b)
+
+These edit upstream Terax files (`src-tauri/src/lib.rs`, `src/settings/SettingsApp.tsx`) and need care when merging upstream updates.
+
+Added:
+
+- `src/settings/SettingsSidebar.tsx`: Settings section nav. A plain sticky list (200px, 36px rows, icon plus label, `rounded-lg`, `bg-accent` active row) beside the content, collapsing to a 48px icon column with tooltips and aria-labels below 760px. Roving focus with ArrowUp, ArrowDown, Home and End.
+- `src/settings/settingsNav.ts`: pure helpers for the nav (keyboard index math, the narrow-width rule).
+- `src/settings/settingsNav.test.ts`: tests for those helpers.
+- `src/settings/SettingsSidebar.test.tsx`: markup test (sticky landmark, plain list, `aria-current`, roving tabindex, narrow rail labels).
+
+Modified:
+
+- `src-tauri/src/lib.rs`:
+  - The window-state plugin now denylists the `settings` window (`with_denylist(&["settings"])`), so its size and position are never saved or restored. Main and every other window keep their behavior.
+  - Settings always opens at 960x680 (was 900x700), with a 760x520 minimum (was 820x620).
+  - `clamp_settings_size` (pure, four unit tests) keeps the default inside 90% of the monitor work area.
+  - Centering over the main window now runs on macOS, Windows and Linux, with `center()` as the fallback. The macOS-only `PhysicalPosition` import and a stale `allow(unused_variables)` were removed.
+- `src/settings/SettingsApp.tsx`: layout shell only.
+  - The top tab bar is gone. The header stays as the drag region.
+  - `<main>` stays the single scroller. Inside it, one centered container (960px max, 24px padding) holds the sticky nav and the content column (680px max) with a 48px gap (24px when narrow).
+  - Sections, labels, icons, order, tab state, `?tab=` deep links and the `terax:settings-tab` event are unchanged.
+- `docs/rokk/TODO.md`: added handshake polish and the upstream-merge note.
+
 ## Visible strings left as Terax on purpose
 
 - `src/modules/updater/UpdaterDialog.tsx`: "Terax vX is available", "Restart Terax", and the `Terax_*.deb` / `Terax-*.rpm` commands. The updater still serves Terax releases, so this text is accurate until the feed changes (see `docs/rokk/TODO.md`).
