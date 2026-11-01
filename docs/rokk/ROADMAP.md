@@ -4,6 +4,20 @@ Rokk is a free, open-source desktop terminal for people who build with Claude Co
 
 This file lists everything we have discussed, with its status. Update it whenever something ships. Status values: Built, Partly, Planned, Parked, Dropped.
 
+## Credit saver (flagship)
+
+Rokk exists to help beginners and vibe coders waste fewer AI credits. These features work automatically, so nobody has to remember a command.
+
+| Feature | Status | Notes |
+| --- | --- | --- |
+| Vague-prompt guard v1 | Built | Settings > Guards (see GUARDS.md). A Claude Code hook asks Claude to ask before building when a prompt is vague. Local, fails open, only in Rokk terminals. |
+| Credit meter | Planned | Read Claude's session files for tokens, cost, cache and context size. |
+| Loop breaker | Planned | Stop and ask after repeated failures. |
+| Junk-folder blocker | Planned | Deny rules for node_modules and build output. |
+| Fresh-session nudge | Planned | Suggest a new session when the context is large. |
+| Short-report rule | Planned | Ask Claude for short reports. |
+| Weekly "what Rokk caught" summary | Planned | Built from the guard stats. |
+
 ## 1. Built
 
 | Feature | Status | Notes |
@@ -28,7 +42,7 @@ This file lists everything we have discussed, with its status. Update it wheneve
 | Remembers-you greeting and session brief | Planned | A short welcome back with what happened last time. |
 | Free command explainer | Planned | Plain-language explanation of any command, from a local dictionary. |
 | Magic words, starting with "ship it" | Planned | Go or no-go preflight, push or deploy, a launch moment, a clip, a diary entry. |
-| Rubber-duck prompt buddy | Built, version 1: templates only | Prompt buddy (`src/modules/rokk-buddy`, see BUDDY.md): drafts prompts with house rules, reviews a pasted report by pattern matching, drafts a follow-up, pastes safely into Claude. No AI calls yet. |
+| Rubber-duck prompt buddy | Parked: replaced by Guards; remove the top-bar icon | Prompt buddy (`src/modules/rokk-buddy`, see BUDDY.md) still works. Version 1 drafts prompts, reviews pasted reports and pastes safely into Claude, with no AI calls. Guards do the same job automatically. |
 | Remember-when | Planned | Search past sessions by what you did, not by command. |
 | The safety set | Planned | "Did it cheat?" detector, the stranger test, a keys vault, a production preflight, "what am I missing?". |
 | Weekly update drafter | Planned | Turns the week's sessions into a short update. |
@@ -65,12 +79,13 @@ This file lists everything we have discussed, with its status. Update it wheneve
 | Git decoration colors | Planned | The colored folder names are loud. Soften later. |
 | Name and brand checks | Planned | Rokk: domains (rokk.app is taken), GitHub, npm, Homebrew, trademarks. Claude spark: review Anthropic's brand guidelines for third-party use. |
 | Merging upstream Terax | Ongoing | Several upstream files are touched (App.tsx, Header.tsx, SidebarRail.tsx, shortcuts.ts, theme files). Keep edits minimal. |
-| Size budget | Ongoing | Total client JS limit is 1,530,000 bytes. Startup budget must not move. Rokk features load lazily. |
+| Size budget | Ongoing | Total client JS limit is 1,560,000 bytes (last raise until Terax's AI agent is trimmed). Startup budget must not move. Rokk features load lazily. |
 | Terax's own AI agent | Parked | About 263 kB gzip of lazy chunks Rokk does not need. Remove later, carefully. |
 | Contact the Terax author | Planned | After a short demo. The highlighting bug fix is a good opening. |
 
 ## 5. Dropped and parked
 
+- Dropped: slash commands for credit saving, because nobody remembers to type them.
 - Dropped: quests, and "visit a friend" (needs a relay server and risks leaking secrets).
 - Parked: a verification platform for Free Agent athletes, a Skool-like community idea.
 

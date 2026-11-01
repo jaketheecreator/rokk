@@ -9,11 +9,12 @@ import {
   KeyboardIcon,
   PaintBoardIcon,
   Settings01Icon,
+  Shield01Icon,
   SourceCodeIcon,
   UserMultiple02Icon,
 } from "@hugeicons/core-free-icons";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
-import { type JSX, useEffect, useState } from "react";
+import { type JSX, lazy, Suspense, useEffect, useState } from "react";
 import { AboutSection } from "./sections/AboutSection";
 import { AgentsSection } from "./sections/AgentsSection";
 import { EditorSection } from "./sections/EditorSection";
@@ -22,6 +23,13 @@ import { ModelsSection } from "./sections/ModelsSection";
 import { ShortcutsSection } from "./sections/ShortcutsSection";
 import { ThemesSection } from "./sections/ThemesSection";
 import { SettingsSidebar } from "./SettingsSidebar";
+
+const GuardsSection = lazy(() => import("./sections/GuardsSection"));
+const GuardsTab = () => (
+  <Suspense fallback={null}>
+    <GuardsSection />
+  </Suspense>
+);
 
 const TABS: {
   id: SettingsTab;
@@ -60,6 +68,7 @@ const TABS: {
     icon: UserMultiple02Icon,
     component: AgentsSection,
   },
+  { id: "guards", label: "Guards", icon: Shield01Icon, component: GuardsTab },
   {
     id: "about",
     label: "About",
@@ -75,6 +84,7 @@ const VALID_TABS: SettingsTab[] = [
   "shortcuts",
   "models",
   "agents",
+  "guards",
   "about",
 ];
 

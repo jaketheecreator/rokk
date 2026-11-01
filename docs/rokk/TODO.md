@@ -57,3 +57,13 @@ Renaming the compiled program breaks the places below, so migrate them together 
 
 - [ ] The Settings window changes live in upstream Terax files (`src-tauri/src/lib.rs` `open_settings_window`, `src/settings/SettingsApp.tsx`). Merge upstream updates to those files with care; the nav itself is isolated in `src/settings/SettingsSidebar.tsx` and `src/settings/settingsNav.ts`. Keep the `with_denylist(&["settings"])` call on the window-state plugin when merging `lib.rs`, or Settings will reopen at a saved size again.
 - [ ] The Graphite surface changes touch upstream Terax theme and layout files (`src/styles/globals.css`, `src/modules/theme/ThemeProvider.tsx`, `index.html`, `settings.html`, `src/modules/tabs/TabBar.tsx`, `src/modules/sidebar/SidebarRail.tsx`, `src/modules/header/SearchInline.tsx`, `src/modules/statusbar/StatusBar.tsx`, `src/modules/statusbar/CwdBreadcrumb.tsx`). Merge upstream updates to them with care; the tokens themselves live in `src/styles/rokk-surfaces.css`.
+
+## Guards
+
+- [ ] **Windows support** for the vague-prompt guard. Windows hooks would call the app by absolute path (as `__terax_notify` does), so a moved or reinstalled app leaves a stale path; needs a stable shim like `~/.rokk/app-path`.
+- [ ] **Mid-session hook changes:** the hooks reference says the file watcher normally picks up direct edits to settings files. Test whether a running Claude Code session starts using the guard without a restart, then update the page text.
+- [ ] **"Improve my prompt" step:** offer a suggested rewrite of a vague prompt, not only a clarifying question.
+- [ ] **Measure the effect:** log turns until done (counts only, no text) to check whether clarifying questions reduce rework.
+- [ ] **Tune Medium sensitivity** with real prompts.
+- [ ] **Cold start time:** measure how long the hook takes to start the Rokk program on a cold disk; the program exits by itself after 150 ms.
+- [ ] Guards touch upstream files (`src-tauri/src/modules/agent.rs` is read for its patterns only; `src-tauri/src/lib.rs`, `src-tauri/src/modules/mod.rs`, `src/settings/SettingsApp.tsx` and `src/modules/settings/openSettingsWindow.ts` are edited); agent.rs, lib.rs and modules/mod.rs need care when merging upstream.

@@ -192,6 +192,7 @@ Modified (upstream files):
 - Rokk features must load lazily (React.lazy or a dynamic import), so they cost nothing at startup until used.
 - The startup budget ("main window startup JS", 540 KB in `.size-limit.json`) is never raised without the owner's approval.
 - On 2026-10-31 the total budget ("total client JS") was raised from 1,505,000 to 1,530,000 bytes (gzip) to make room for the session rail. The other four budgets are unchanged.
+- On 2026-10-31 the total budget was raised again, from 1,530,000 to 1,560,000 bytes, to make room for the "ship it" preflight and the session brief. This is the last raise until Terax's own AI agent is trimmed (see `docs/rokk/TODO.md` and `docs/rokk/AI_TRIM_MAP.md`).
 - Every future raise needs a written reason here and the owner's approval.
 
 Modified: `.size-limit.json` (total client JS limit only), `CLAUDE.md` (Rokk rules).
@@ -238,6 +239,40 @@ Modified (upstream files):
 - `src/modules/shortcuts/shortcuts.ts`: the `buddy.toggle` id and its entry (`Mod+Alt+D`, AI group).
 - `docs/rokk/ROADMAP.md`: the rubber-duck row is Built, version 1.
 - `docs/rokk/TODO.md`: Buddy phase 2 and the merge note.
+
+## Guards: "Clarify vague prompts" (version 1)
+
+Added:
+
+- `src-tauri/src/modules/rokk_guard/`: the guard, with Rust tests.
+  - `score.rs`: the pure vague-prompt detector (skip rules, signals, vague phrase table, Low and Medium).
+  - `settings_edit.rs`: adds and removes our one hook entry in `~/.claude/settings.json` as a text splice that keeps every other byte.
+  - `files.rs`: path safety (only the settings files and `~/.rokk`), atomic writes, the one-time backup, config, cooldown state and stats.
+  - `mod.rs`: the hidden `__rokk_prompt_guard` subcommand (fails open), the app path refresh, and the Tauri commands `guard_status`, `guard_enable`, `guard_disable`, `guard_remove_all`, `guard_set_sensitivity`, `guard_score` and `guard_stats`.
+- `src/modules/rokk-guards/lib/`: page logic and IPC, with tests.
+- `src/settings/sections/GuardsSection.tsx`: the Guards page, its own lazy chunk.
+- `docs/rokk/GUARDS.md`.
+
+Modified (upstream files, minimal):
+
+- `src-tauri/src/modules/mod.rs`: `pub mod rokk_guard;`.
+- `src-tauri/src/lib.rs`: the subcommand dispatch at the top of `run()` (Unix only), one `refresh_app_path()` line in `setup`, seven command names in `generate_handler!`.
+- `src/settings/SettingsApp.tsx`: a lazy import, the Guards tab after Agents, and `"guards"` in the valid tabs.
+- `src/modules/settings/openSettingsWindow.ts`: `"guards"` in `SettingsTab`.
+
+## Settings window: no white flash on open
+
+- `src-tauri/src/lib.rs` (upstream): `open_settings_window` takes an optional `dark` and, on macOS, creates the window with the Graphite window color (`#0F0F0E` dark, `#E7E4DD` light, from `settings_background`). Without a mode it falls back to the main window's theme. Linux and Windows keep their transparent windows.
+- `src/modules/settings/openSettingsWindow.ts` (upstream): sends the mode the main window resolved (the `dark` class on `<html>`).
+- `settings.html` (upstream): the pre-paint script paints the Graphite window color for the default theme, and keeps `#141414` and `#ffffff` for other themes.
+- `src/settings/settingsPrepaint.test.ts`: ties the settings.html colors and the Rust colors to `--rk-window` in `rokk-surfaces.css`. `index.html` and its test (`prepaintSync.test.ts`) are unchanged.
+
+## Guards fix: enabling failed on the settings backup
+
+- Bug: turning the guard on or pressing Repair failed with a "refusing to write" error, and the status stayed "Installed in Claude Code: No". The backup of `~/.claude/settings.json` was written through a temp file named `settings.json.rokk-backup.rokk-tmp`, which the path check (correctly) refuses. Every file in `~/.claude` now goes through the one allowed temp name, `settings.json.rokk-tmp`. The safety rules are unchanged.
+- Errors from the guard commands now say which check failed and which file is involved, in plain language (for example "Claude's settings file (~/.claude/settings.json) is a symlink to ..., so Rokk will not change it", or "Rokk could not write ...: permission denied"). They never include file contents or prompt text.
+- The Guards card shows any failure in a `role="alert"` box with a Copy details button (the message plus the guard's on, installed and files flags).
+- New Rust tests: `backup_goes_through_the_allowed_temp_file` (fails before the fix), `refusals_name_the_check_and_the_path_class`, `io_errors_say_not_writable`.
 
 ## Visible strings left as Terax on purpose
 

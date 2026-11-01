@@ -85,6 +85,16 @@ const fn settings_always_on_top(is_macos: bool) -> bool {
     !is_macos
 }
 
+/// Graphite window color (`--rk-window` in src/styles/rokk-surfaces.css), so
+/// Settings never shows a white frame before its page paints.
+const fn settings_background(dark: bool) -> (u8, u8, u8) {
+    if dark {
+        (0x0f, 0x0f, 0x0e)
+    } else {
+        (0xe7, 0xe4, 0xdd)
+    }
+}
+
 const SETTINGS_SIZE: (f64, f64) = (960.0, 680.0);
 const SETTINGS_MIN_SIZE: (f64, f64) = (760.0, 520.0);
 
@@ -99,7 +109,11 @@ fn clamp_settings_size(size: (u32, u32), work: (u32, u32), min: (u32, u32)) -> (
 }
 
 #[tauri::command]
-async fn open_settings_window(app: tauri::AppHandle, tab: Option<String>) -> Result<(), String> {
+async fn open_settings_window(
+    app: tauri::AppHandle,
+    tab: Option<String>,
+    dark: Option<bool>,
+) -> Result<(), String> {
     let url_path = match tab.as_deref() {
         Some(t) if !t.is_empty() => format!("settings.html?tab={}", t),
         _ => "settings.html".to_string(),
@@ -135,10 +149,23 @@ async fn open_settings_window(app: tauri::AppHandle, tab: Option<String>) -> Res
         builder
     };
 
+    // The mode the main window resolved (sent by the frontend), else the
+    // main window's system theme.
     #[cfg(target_os = "macos")]
-    let builder = builder
-        .title_bar_style(tauri::TitleBarStyle::Overlay)
-        .hidden_title(true);
+    let builder = {
+        let dark = dark.unwrap_or_else(|| {
+            app.get_webview_window("main")
+                .and_then(|main| main.theme().ok())
+                .is_none_or(|theme| theme == tauri::Theme::Dark)
+        });
+        let (r, g, b) = settings_background(dark);
+        builder
+            .title_bar_style(tauri::TitleBarStyle::Overlay)
+            .hidden_title(true)
+            .background_color(tauri::window::Color(r, g, b, 255))
+    };
+    #[cfg(not(target_os = "macos"))]
+    let _ = dark;
 
     // On Linux/Windows we render our own titlebar, so drop native chrome
     // and make the window transparent.
@@ -197,6 +224,10 @@ async fn open_settings_window(app: tauri::AppHandle, tab: Option<String>) -> Res
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    #[cfg(unix)]
+    if std::env::args().nth(1).as_deref() == Some(modules::rokk_guard::SUBCOMMAND) {
+        modules::rokk_guard::run_hook();
+    }
     #[cfg(windows)]
     {
         let args: Vec<String> = std::env::args().collect();
@@ -266,6 +297,7 @@ pub fn run() {
             modules::bench::guard(_app.handle())?;
             #[cfg(target_os = "macos")]
             modules::window_presentation::macos::install(_app.handle());
+            modules::rokk_guard::refresh_app_path();
             if let Err(error) = control::start(_app.handle().clone(), control_for_setup.clone()) {
                 log::warn!("could not start Terax control server: {error}");
             }
@@ -384,6 +416,13 @@ pub fn run() {
             open_settings_window,
             agent::agent_enable_hooks,
             agent::agent_hooks_status,
+            modules::rokk_guard::guard_status,
+            modules::rokk_guard::guard_enable,
+            modules::rokk_guard::guard_disable,
+            modules::rokk_guard::guard_remove_all,
+            modules::rokk_guard::guard_set_sensitivity,
+            modules::rokk_guard::guard_score,
+            modules::rokk_guard::guard_stats,
             secrets::secrets_get,
             secrets::secrets_set,
             secrets::secrets_delete,
@@ -477,8 +516,8 @@ pub fn run() {
 #[cfg(test)]
 mod launch_target_tests {
     use super::{
-        clamp_settings_size, resolve_launch_target, settings_always_on_top, LaunchEntry,
-        LaunchTarget,
+        clamp_settings_size, resolve_launch_target, settings_always_on_top, settings_background,
+        LaunchEntry, LaunchTarget,
     };
     use std::path::PathBuf;
 
@@ -550,5 +589,11 @@ mod launch_target_tests {
     #[test]
     fn settings_size_screen_smaller_than_minimum_wins() {
         assert_eq!(clamp_settings_size((1520, 1040), (1280, 800), (1520, 1040)), (1152, 720));
+    }
+
+    #[test]
+    fn settings_background_is_the_graphite_window_color() {
+        assert_eq!(settings_background(true), (0x0f, 0x0f, 0x0e));
+        assert_eq!(settings_background(false), (0xe7, 0xe4, 0xdd));
     }
 }
