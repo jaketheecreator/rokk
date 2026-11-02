@@ -55,7 +55,7 @@ The hook entry:
   "hooks": [
     {
       "type": "command",
-      "command": "[ -n \"$TERAX_TERMINAL\" ] && [ -x \"$HOME/.rokk/hooks/prompt-guard\" ] && \"$HOME/.rokk/hooks/prompt-guard\"; true",
+      "command": "[ -n \"$ROKK_TERMINAL\" ] && [ -x \"$HOME/.rokk/hooks/prompt-guard\" ] && \"$HOME/.rokk/hooks/prompt-guard\"; true",
       "timeout": 2
     }
   ]
@@ -78,10 +78,18 @@ The prompt is read in memory, scored, and dropped. It is never logged, stored or
 
 The guard can never block or slow a prompt:
 
-- it runs only when `TERAX_TERMINAL` is set, that is, only in terminals opened by Rokk (checked by the hook command, the wrapper and the program);
+- it runs only when `ROKK_TERMINAL` is set, that is, only in terminals opened by Rokk (checked by the hook command, the wrapper and the program);
 - a missing wrapper, missing app path, missing program, unreadable input, parse error or any other problem prints nothing and exits 0;
 - the program exits by itself after 150 ms, and the hook entry has a 2 second timeout; on a timeout Claude Code drops the output and the prompt goes through;
 - it never exits with code 2 and never sets `decision: "block"`.
+
+## Its own terminal variable
+
+Rokk sets `ROKK_TERMINAL=1` in every terminal shell it spawns (`src-tauri/src/modules/pty/shell_init.rs`, next to `TERAX_TERMINAL=1`, which stays because agent detection and the handshake depend on it). The guard checks `ROKK_TERMINAL` because the original Terax also sets `TERAX_TERMINAL`: gated on that, the guard would fire inside Terax too.
+
+Version 1 of the guard was gated on `TERAX_TERMINAL`. Its entry carries the same marker, so turning the guard on again or pressing Repair replaces it with exactly one current entry; it is never duplicated. Until then, Settings > Guards shows Repair with "Rokk updated how the guard recognizes its own terminals." At start, Rokk also refreshes the wrapper script (now version 2, gated on `ROKK_TERMINAL`).
+
+Terminal tabs opened before this change do not have `ROKK_TERMINAL`, so the guard stays silent in them. Reopen those tabs (or open new ones) after updating.
 
 ## Remove it by hand
 

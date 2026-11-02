@@ -274,6 +274,32 @@ Modified (upstream files, minimal):
 - The Guards card shows any failure in a `role="alert"` box with a Copy details button (the message plus the guard's on, installed and files flags).
 - New Rust tests: `backup_goes_through_the_allowed_temp_file` (fails before the fix), `refusals_name_the_check_and_the_path_class`, `io_errors_say_not_writable`.
 
+## Guards: own terminal variable, and the Buddy icon removed
+
+- `src-tauri/src/modules/pty/shell_init.rs` (upstream): every terminal shell Rokk spawns (local and WSL) also gets `ROKK_TERMINAL=1`, next to `TERAX_TERMINAL=1`, which is unchanged.
+- The guard's hook command and wrapper (now version 2) check `ROKK_TERMINAL` instead of `TERAX_TERMINAL`, so the guard never fires inside the original Terax. The program checks it too.
+- A version 1 entry (gated on `TERAX_TERMINAL`) is recognized by the marker and replaced, not duplicated, by enable or Repair. `guard_status` reports it as `outdated`, and the Guards card shows Repair with "Rokk updated how the guard recognizes its own terminals."
+- New Rust tests: the v1 entry is replaced; without `ROKK_TERMINAL` the wrapper and the hook command print nothing and exit 0 (with `TERAX_TERMINAL` alone too); with it they run the app; a missing app prints nothing; "fix it" gets the clarification; the status flags an old entry.
+- `src/modules/header/Header.tsx` (upstream): removed the `<BuddyToggle />` line and its import. Prompt buddy is parked and opens only with `Mod+Alt+D`.
+
+## Credit meter (version 1)
+
+Added:
+
+- `src-tauri/src/modules/rokk_meter/`: the read-only session file reader, with Rust tests.
+  - `paths.rs`: the allowed-location check (only regular `*.jsonl` files inside `~/.claude/projects`), the folder name scheme and the session match.
+  - `parse.rs`: the defensive line parser, de-duplication by `message.id`, per-prompt grouping and the snapshot (numbers, ids, model and tool names only).
+  - `prices.rs` and `prices.json`: list prices with source and date, the only place prices live.
+  - `mod.rs`: the incremental reader and the commands `meter_find_session` and `meter_read`.
+- `src/modules/rokk-meter/`: `lib/meter.ts` (formatting, view mapping, poller) with tests, `lib/ipc.ts`, `CreditsSection.tsx` (its own lazy chunk) and `index.tsx` (the slot).
+- `docs/rokk/METER.md`.
+
+Modified:
+
+- `src-tauri/src/modules/mod.rs` (upstream): `pub mod rokk_meter;`.
+- `src-tauri/src/lib.rs` (upstream): two command names in `generate_handler!`.
+- `src/modules/rokk-rail/SessionRail.tsx` (Rokk): one import, the pane id of the shown log (2 lines) and the `<CreditsSlot />` line under the Session header.
+
 ## Visible strings left as Terax on purpose
 
 - `src/modules/updater/UpdaterDialog.tsx`: "Terax vX is available", "Restart Terax", and the `Terax_*.deb` / `Terax-*.rpm` commands. The updater still serves Terax releases, so this text is accurate until the feed changes (see `docs/rokk/TODO.md`).

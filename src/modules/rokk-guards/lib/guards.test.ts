@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { ConsentDetails, GuardsView, problemDetails } from "@/settings/sections/GuardsSection";
-import { type GuardStatus, needsRepair, pageState, statsLine, toggleAction } from "./guards";
+import { type GuardStatus, needsRepair, pageState, repairReason, statsLine, toggleAction } from "./guards";
 
 function status(over: Partial<GuardStatus> = {}): GuardStatus {
   return {
@@ -85,7 +85,7 @@ describe("rendered page", () => {
   it("not installed: shows Repair with a text reason", () => {
     const html = view({ ...ON, installed: false });
     expect(html).toContain("Repair");
-    expect(html).toContain("the hook or its files are missing");
+    expect(html).toContain("The hook or its files are missing.");
   });
 
   it("error: shows the problem in an alert and disables the switch", () => {
@@ -109,6 +109,19 @@ describe("rendered page", () => {
     expect(view(ON, { checked: 12, fired: 2, skipped: 4, lastFire: 1 })).toContain(
       "This week: checked 12 prompts, asked Claude to clarify on 2.",
     );
+  });
+});
+
+describe("repair after the ROKK_TERMINAL change", () => {
+  it("offers Repair with a plain reason for an old entry", () => {
+    const old = { ...ON, outdated: true };
+    expect(pageState(old)).toBe("notInstalled");
+    expect(needsRepair(old)).toBe(true);
+    expect(repairReason(old)).toBe("Rokk updated how the guard recognizes its own terminals.");
+    const html = view(old);
+    expect(html).toContain("Repair");
+    expect(html).toContain("Rokk updated how the guard recognizes its own terminals.");
+    expect(repairReason(ON)).toBeNull();
   });
 });
 

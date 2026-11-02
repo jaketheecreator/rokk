@@ -7,6 +7,8 @@ export type GuardStatus = {
   enabled: boolean;
   consented: boolean;
   installed: boolean;
+  /** Our entry is from an older version (gated on TERAX_TERMINAL). */
+  outdated?: boolean;
   filesOk: boolean;
   sensitivity: Sensitivity;
   version: number;
@@ -38,13 +40,24 @@ export function pageState(status: GuardStatus | null): PageState {
   if (!status.supported) return "unsupported";
   if (status.error) return "error";
   if (!status.enabled) return "off";
-  return status.installed && status.filesOk ? "on" : "notInstalled";
+  return status.installed && status.filesOk && !status.outdated ? "on" : "notInstalled";
 }
 
 /** Something on disk disagrees with the switch, so Repair is offered. */
 export function needsRepair(status: GuardStatus | null): boolean {
   if (!status?.supported || status.error) return false;
-  return status.enabled ? !(status.installed && status.filesOk) : status.installed;
+  return status.enabled
+    ? !(status.installed && status.filesOk) || Boolean(status.outdated)
+    : status.installed;
+}
+
+/** Why Repair is offered, in plain language. */
+export function repairReason(status: GuardStatus | null): string | null {
+  if (!needsRepair(status) || !status) return null;
+  if (status.enabled && status.installed && status.outdated)
+    return "Rokk updated how the guard recognizes its own terminals.";
+  if (!status.enabled) return "The hook is still in Claude Code although the guard is off.";
+  return "The hook or its files are missing.";
 }
 
 export type ToggleAction = "consent" | "enable" | "disable";

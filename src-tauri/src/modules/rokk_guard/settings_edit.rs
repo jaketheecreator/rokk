@@ -9,8 +9,11 @@ use serde_json::{json, Value};
 pub const MARKER: &str = "/.rokk/hooks/prompt-guard";
 const EVENT: &str = "UserPromptSubmit";
 
+/// Gated on ROKK_TERMINAL, which only Rokk sets (the original Terax also
+/// sets TERAX_TERMINAL). Version 1 was gated on TERAX_TERMINAL; it carries the
+/// same marker, so `add` replaces it.
 pub fn hook_command() -> String {
-    r#"[ -n "$TERAX_TERMINAL" ] && [ -x "$HOME/.rokk/hooks/prompt-guard" ] && "$HOME/.rokk/hooks/prompt-guard"; true"#
+    r#"[ -n "$ROKK_TERMINAL" ] && [ -x "$HOME/.rokk/hooks/prompt-guard" ] && "$HOME/.rokk/hooks/prompt-guard"; true"#
         .to_string()
 }
 
@@ -53,6 +56,19 @@ pub fn has_entry(text: &str) -> Result<bool, String> {
     }))
 }
 
+/// True when our entry is present exactly once and in its current form.
+pub fn entry_is_current(text: &str) -> Result<bool, String> {
+    Ok(parse(text)?.is_some_and(|v| {
+        v.get("hooks")
+            .and_then(|h| h.get(EVENT))
+            .and_then(Value::as_array)
+            .is_some_and(|a| {
+                let ours: Vec<&Value> = a.iter().filter(|g| is_ours(g)).collect();
+                ours.len() == 1 && *ours[0] == hook_group()
+            })
+    }))
+}
+
 /// The file with our entry present exactly once, in its current form.
 pub fn add(text: &str) -> Result<String, String> {
     let Some(old) = parse(text)? else {
@@ -65,7 +81,9 @@ pub fn add(text: &str) -> Result<String, String> {
         return Ok(text.to_string());
     }
     let base = if ours.is_empty() { text.to_string() } else { remove(text)? };
-    let out = splice_add(&base)?;
+    // Indent in the style of the file as it was, even when removing a stale
+    // entry left the base nearly empty.
+    let out = splice_add(&base, indent_unit(text))?;
 
     let mut expected = parse(&base)?.unwrap_or_else(|| json!({}));
     let obj = expected.as_object_mut().unwrap();
@@ -297,9 +315,8 @@ fn insert_last(text: &str, c: &Container, last_end: Option<usize>, item: &str, u
     }
 }
 
-fn splice_add(text: &str) -> Result<String, String> {
+fn splice_add(text: &str, unit: Option<String>) -> Result<String, String> {
     let s = text.as_bytes();
-    let unit = indent_unit(text);
     let unit = unit.as_deref();
     let r = root(s)?;
     let (root_members, root_c) = members(s, r)?;
@@ -510,6 +527,52 @@ mod tests {
         assert_eq!(ours_count(&out), 1);
         // "hooks" held only our entry, so it goes with it.
         assert_eq!(remove(&out).unwrap(), "{\n  \"x\": \"} ] \\\" {\"\n}");
+    }
+
+    /// The version 1 entry, gated on TERAX_TERMINAL.
+    const V1_COMMAND: &str = r#"[ -n "$TERAX_TERMINAL" ] && [ -x "$HOME/.rokk/hooks/prompt-guard" ] && "$HOME/.rokk/hooks/prompt-guard"; true"#;
+
+    #[test]
+    fn replaces_the_terax_gated_v1_entry_instead_of_duplicating_it() {
+        let v1 = json!({ "hooks": [ { "type": "command", "command": V1_COMMAND, "timeout": 2 } ] });
+        let with_v1 = splice_add_group(USER, &v1);
+        assert_eq!(ours_count(&with_v1), 1);
+        assert!(has_entry(&with_v1).unwrap());
+        assert!(!entry_is_current(&with_v1).unwrap());
+
+        let out = add(&with_v1).unwrap();
+        assert_eq!(ours_count(&out), 1);
+        assert!(entry_is_current(&out).unwrap());
+        let v: Value = serde_json::from_str(&out).unwrap();
+        let ours: Vec<&Value> = v["hooks"][EVENT].as_array().unwrap().iter().filter(|g| is_ours(g)).collect();
+        let command = ours[0]["hooks"][0]["command"].as_str().unwrap();
+        assert!(command.starts_with(r#"[ -n "$ROKK_TERMINAL" ]"#));
+        assert!(!command.contains("TERAX_TERMINAL"));
+        // The foreign Terax hook is still there, and removal restores the file.
+        assert_eq!(v["hooks"][EVENT].as_array().unwrap().len(), 2);
+        assert_eq!(remove(&out).unwrap(), USER);
+    }
+
+    /// Test helper: appends any group the way `add` appends ours.
+    fn splice_add_group(text: &str, group: &Value) -> String {
+        let s = text.as_bytes();
+        let (root_members, _) = members(s, root(s).unwrap()).unwrap();
+        let hooks = find(&root_members, "hooks").unwrap();
+        let (hook_members, _) = members(s, hooks.value_start).unwrap();
+        let event = find(&hook_members, EVENT).unwrap();
+        let (elems, arr_c) = elements(s, event.value_start).unwrap();
+        let unit = indent_unit(text);
+        let indent = format!("{}{}", line_indent(text, event.value_start), unit.as_deref().unwrap_or(""));
+        let value = render(group, unit.as_deref(), &indent);
+        insert_last(text, &arr_c, elems.last().map(|e| e.1), &value, unit.as_deref())
+    }
+
+    #[test]
+    fn current_entry_is_gated_on_rokk_terminal() {
+        assert!(hook_command().starts_with(r#"[ -n "$ROKK_TERMINAL" ] && "#));
+        assert!(hook_command().contains(MARKER));
+        assert!(entry_is_current(&add(USER).unwrap()).unwrap());
+        assert!(!entry_is_current(USER).unwrap());
     }
 
     #[test]

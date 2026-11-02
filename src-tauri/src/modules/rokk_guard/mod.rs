@@ -2,7 +2,8 @@
 // UserPromptSubmit hook that asks Claude to ask before building when a
 // prompt is too vague. See docs/rokk/GUARDS.md.
 //
-// The hook is a wrapper script in ~/.rokk/hooks that runs this binary with
+// The hook runs only where ROKK_TERMINAL is set (Rokk's terminals; the
+// original Terax sets only TERAX_TERMINAL). It is a wrapper script in ~/.rokk/hooks that runs this binary with
 // the hidden `__rokk_prompt_guard` subcommand. Everything fails open: any
 // problem means no output and exit code 0, so Claude carries on as normal.
 
@@ -54,10 +55,16 @@ pub fn run_hook() -> ! {
 #[cfg(unix)]
 fn hook_output() -> Option<String> {
     use std::io::Read;
-    std::env::var_os("TERAX_TERMINAL")?;
+    std::env::var_os("ROKK_TERMINAL")?;
     let mut buf = Vec::new();
     std::io::stdin().take(1 << 20).read_to_end(&mut buf).ok()?;
-    let input: Value = serde_json::from_slice(&buf).ok()?;
+    respond(&buf, &Paths::from_home().ok()?)
+}
+
+/// The response to one hook input, given the guard's files under `paths`.
+#[cfg(unix)]
+fn respond(buf: &[u8], paths: &Paths) -> Option<String> {
+    let input: Value = serde_json::from_slice(buf).ok()?;
     if input
         .get("hook_event_name")
         .and_then(Value::as_str)
@@ -68,7 +75,6 @@ fn hook_output() -> Option<String> {
     let prompt = input.get("prompt")?.as_str()?;
     let session = input.get("session_id").and_then(Value::as_str).unwrap_or("");
 
-    let paths = Paths::from_home().ok()?;
     let config: GuardConfig = files::read_json(&paths.config());
     if !config.enabled {
         return None;
@@ -78,10 +84,10 @@ fn hook_output() -> Option<String> {
 
     let mut state: GuardState = files::read_json(&paths.state());
     let fire = files::cooldown_step(&mut state, session, verdict == Verdict::Vague, now);
-    let _ = files::write_json(&paths, &paths.state(), &state);
+    let _ = files::write_json(paths, &paths.state(), &state);
     let mut stats: GuardStats = files::read_json(&paths.stats());
     files::record(&mut stats, verdict, fire, now);
-    let _ = files::write_json(&paths, &paths.stats(), &stats);
+    let _ = files::write_json(paths, &paths.stats(), &stats);
 
     fire.then(hook_json)
 }
@@ -123,6 +129,9 @@ pub struct GuardStatus {
     consented: bool,
     /// Our hook entry is in ~/.claude/settings.json.
     installed: bool,
+    /// Our entry is there but from an older version (for example gated on
+    /// TERAX_TERMINAL), so Repair should replace it.
+    outdated: bool,
     /// The wrapper and the app path file are present and current.
     files_ok: bool,
     sensitivity: Sensitivity,
@@ -136,9 +145,13 @@ pub struct GuardStatus {
 
 fn status_at(paths: &Paths) -> GuardStatus {
     let config: GuardConfig = files::read_json(&paths.config());
-    let (installed, error) = match paths.read_settings().and_then(|t| settings_edit::has_entry(&t.unwrap_or_default())) {
-        Ok(found) => (found, None),
-        Err(e) => (false, Some(e)),
+    let entry = paths.read_settings().and_then(|t| {
+        let t = t.unwrap_or_default();
+        Ok((settings_edit::has_entry(&t)?, settings_edit::entry_is_current(&t)?))
+    });
+    let (installed, outdated, error) = match entry {
+        Ok((found, current)) => (found, found && !current, None),
+        Err(e) => (false, false, Some(e)),
     };
     let wrapper_ok = std::fs::read_to_string(paths.wrapper()).ok() == Some(files::wrapper_script());
     let app_ok = std::fs::read_to_string(paths.app_path())
@@ -149,6 +162,7 @@ fn status_at(paths: &Paths) -> GuardStatus {
         enabled: config.enabled,
         consented: config.consented,
         installed,
+        outdated,
         files_ok: wrapper_ok && app_ok,
         sensitivity: config.sensitivity,
         version: files::WRAPPER_VERSION,
@@ -366,6 +380,106 @@ mod tests {
         assert!(!p.rokk().exists(), "nothing is written before the check");
         assert!(!p.backup().exists());
         assert!(status_at(&p).error.is_some());
+    }
+
+    fn hook_input(prompt: &str) -> Vec<u8> {
+        json!({ "session_id": "s-1", "hook_event_name": "UserPromptSubmit", "prompt": prompt })
+            .to_string()
+            .into_bytes()
+    }
+
+    /// Runs a shell script with only HOME and PATH set, plus `extra`.
+    fn run_sh(args: &[&str], home: &std::path::Path, extra: &[(&str, &str)], stdin: &[u8]) -> std::process::Output {
+        use std::io::Write;
+        let mut cmd = std::process::Command::new("/bin/sh");
+        cmd.args(args)
+            .env_clear()
+            .env("HOME", home)
+            .env("PATH", "/usr/bin:/bin")
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped());
+        for (k, v) in extra {
+            cmd.env(k, v);
+        }
+        let mut child = cmd.spawn().unwrap();
+        let _ = child.stdin.take().unwrap().write_all(stdin);
+        child.wait_with_output().unwrap()
+    }
+
+    /// The wrapper and hook files, with the app replaced by a stub that
+    /// says it ran.
+    fn install_with_stub(p: &Paths) {
+        use std::os::unix::fs::PermissionsExt;
+        let stub = p.home.join("stub-app");
+        std::fs::write(&stub, "#!/bin/sh\ncat >/dev/null\nprintf STUB-RAN\n").unwrap();
+        std::fs::set_permissions(&stub, std::fs::Permissions::from_mode(0o755)).unwrap();
+        enable_at(p, stub.to_str().unwrap(), None).unwrap();
+    }
+
+    #[test]
+    fn without_rokk_terminal_the_wrapper_and_hook_print_nothing_and_exit_0() {
+        let (_d, p) = home();
+        install_with_stub(&p);
+        let wrapper = p.wrapper();
+        let command = settings_edit::hook_command();
+        // TERAX_TERMINAL alone (the original Terax) is not enough.
+        for args in [vec![wrapper.to_str().unwrap()], vec!["-c", command.as_str()]] {
+            let out = run_sh(&args, &p.home, &[("TERAX_TERMINAL", "1")], &hook_input("fix it"));
+            assert!(out.status.success(), "{args:?}");
+            assert!(out.stdout.is_empty(), "{args:?}");
+        }
+    }
+
+    #[test]
+    fn with_rokk_terminal_the_wrapper_and_hook_run_the_app() {
+        let (_d, p) = home();
+        install_with_stub(&p);
+        let wrapper = p.wrapper();
+        let command = settings_edit::hook_command();
+        for args in [vec![wrapper.to_str().unwrap()], vec!["-c", command.as_str()]] {
+            let out = run_sh(&args, &p.home, &[("ROKK_TERMINAL", "1")], &hook_input("fix it"));
+            assert!(out.status.success(), "{args:?}");
+            assert_eq!(out.stdout, b"STUB-RAN", "{args:?}");
+        }
+    }
+
+    #[test]
+    fn wrapper_with_a_missing_app_prints_nothing_and_exits_0() {
+        let (_d, p) = home();
+        install_with_stub(&p);
+        std::fs::remove_file(p.home.join("stub-app")).unwrap();
+        let out = run_sh(&[p.wrapper().to_str().unwrap()], &p.home, &[("ROKK_TERMINAL", "1")], &hook_input("fix it"));
+        assert!(out.status.success());
+        assert!(out.stdout.is_empty());
+    }
+
+    #[test]
+    fn fix_it_gets_the_clarification_and_specific_prompts_get_nothing() {
+        let (_d, p) = home();
+        enable_at(&p, EXE, None).unwrap();
+        assert_eq!(respond(&hook_input("fix it"), &p), Some(hook_json()));
+        let specific = hook_input("In src/settings/GeneralSection.tsx, add a toggle for the greeting");
+        assert_eq!(respond(&specific, &p), None);
+        disable_at(&p).unwrap();
+        assert_eq!(respond(&hook_input("fix it"), &p), None);
+    }
+
+    #[test]
+    fn status_flags_an_old_terax_gated_entry_as_outdated() {
+        let (_d, p) = home();
+        enable_at(&p, EXE, None).unwrap();
+        assert!(!status_at(&p).outdated);
+        let text = std::fs::read_to_string(p.settings()).unwrap();
+        let old = text.replace("$ROKK_TERMINAL", "$TERAX_TERMINAL");
+        std::fs::write(p.settings(), &old).unwrap();
+        let s = status_at(&p);
+        assert!(s.installed && s.outdated);
+        // Enabling again (what Repair does) replaces it with one current entry.
+        enable_at(&p, EXE, None).unwrap();
+        let s = status_at(&p);
+        assert!(s.installed && !s.outdated);
+        assert_eq!(std::fs::read_to_string(p.settings()).unwrap(), text);
     }
 
     #[test]

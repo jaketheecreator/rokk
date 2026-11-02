@@ -24,6 +24,7 @@ import {
   type GuardStatus,
   needsRepair,
   pageState,
+  repairReason,
   type Sensitivity,
   statsLine,
   toggleAction,
@@ -252,7 +253,7 @@ export function GuardsView(props: ViewProps) {
           <div className="flex items-center justify-between gap-4 text-[12px]">
             <span>
               Installed in Claude Code: <strong className="font-medium">{status?.installed ? "Yes" : "No"}</strong>
-              {state === "notInstalled" ? <span className={HINT}> (the hook or its files are missing)</span> : null}
+              {repairReason(status) ? <span className={HINT}> {repairReason(status)}</span> : null}
             </span>
             {needsRepair(status) ? (
               <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11px]" disabled={busy} onClick={props.onRepair}>

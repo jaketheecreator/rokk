@@ -23,7 +23,6 @@ import {
   type SearchInlineHandle,
   type SearchTarget,
 } from "./SearchInline";
-import { BuddyToggle } from "@/modules/rokk-buddy/BuddyToggle";
 import { RailToggle } from "@/modules/rokk-rail/RailToggle";
 
 type Props = {
@@ -193,7 +192,6 @@ export function Header({
         <div data-tauri-drag-region className="h-full min-w-2 flex-1" />
       </div>
 
-      <BuddyToggle />
       <RailToggle />
       <SearchInline ref={searchRef} target={searchTarget} compact={compact} />
 

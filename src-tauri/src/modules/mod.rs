@@ -14,6 +14,7 @@ pub mod net;
 pub mod proc;
 pub mod pty;
 pub mod rokk_guard;
+pub mod rokk_meter;
 pub mod runtime;
 pub mod secrets;
 pub mod shell;

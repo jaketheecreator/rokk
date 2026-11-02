@@ -2,7 +2,7 @@
 
 A floating dialog that helps a beginner write good prompts for Claude Code and sanity-check Claude's reports. Version 1 is templates and pattern matching only: no AI calls, no network, nothing leaves the Mac.
 
-Open it with the top bar button (speech bubble, left of the session panel button) or `Mod+Alt+D` (`buddy.toggle`, AI group, rebindable in Settings > Shortcuts). Esc closes it. Focus is trapped while open and returns to the toggle on close, or to the terminal after "Paste into Claude".
+**Parked:** Guards (see GUARDS.md) now do this job automatically. The top bar button was removed, so the dialog is reachable only by the shortcut `Mod+Alt+D` (`buddy.toggle`, AI group, rebindable in Settings > Shortcuts). The module and its tests stay. Esc closes it. Focus is trapped while open and moves to the terminal after "Paste into Claude" (see TODO for focus on a plain close).
 
 ## The three tabs
 

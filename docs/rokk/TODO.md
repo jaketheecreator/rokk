@@ -16,6 +16,7 @@ These were left as Terax on purpose in phase 1. Each needs a migration or a rele
 ## Needs a compatibility window
 
 - [ ] **`TERAX_*` environment variables**. `TERAX_TERMINAL` gates agent hooks already installed in users' configs, so accept both names before switching.
+- [ ] **`ROKK_TERMINAL`** joins this migration list: Rokk sets it next to `TERAX_TERMINAL` (in `pty/shell_init.rs`), and the vague-prompt guard is gated on it. If `TERAX_TERMINAL` is ever renamed, keep `ROKK_TERMINAL` and the guard's gate as they are.
 - [ ] **Hook signal** OSC 777 `notify;Terax;...`. The detector would have to accept both markers first.
 
 ## Packaging and tooling
@@ -67,3 +68,15 @@ Renaming the compiled program breaks the places below, so migrate them together 
 - [ ] **Tune Medium sensitivity** with real prompts.
 - [ ] **Cold start time:** measure how long the hook takes to start the Rokk program on a cold disk; the program exits by itself after 150 ms.
 - [ ] Guards touch upstream files (`src-tauri/src/modules/agent.rs` is read for its patterns only; `src-tauri/src/lib.rs`, `src-tauri/src/modules/mod.rs`, `src/settings/SettingsApp.tsx` and `src/modules/settings/openSettingsWindow.ts` are edited); agent.rs, lib.rs and modules/mod.rs need care when merging upstream.
+- [ ] `src-tauri/src/modules/pty/shell_init.rs` now sets `ROKK_TERMINAL` (2 lines) and `src/modules/header/Header.tsx` lost the Buddy icon; both are upstream files that need care when merging upstream.
+- [ ] Prompt buddy: its dialog returns focus to the removed top-bar button on close; with the button gone, focus is not moved. Fix or delete the module when Buddy is decided.
+
+## Credit meter
+
+- [ ] **Refresh the price table** (`src-tauri/src/modules/rokk_meter/prices.json`) before each release, from https://platform.claude.com/docs/en/about-claude/pricing.
+- [ ] **Per-file edit counts** for the loop breaker: needs file paths from tool inputs, which the meter does not read today. A privacy decision first.
+- [ ] **Other agents** (Codex, Gemini) are not metered.
+- [ ] **Subscription limits** cannot be shown: they are not in the session files.
+- [ ] **Weekly summary** of usage, built from the meter and the guard stats.
+- [ ] **Active session matching** is by folder and time; reading the session id from a hook would be exact (the guard hook sees `session_id`).
+- [ ] `src-tauri/src/lib.rs` and `src-tauri/src/modules/mod.rs` are upstream files, and `src/modules/rokk-rail/SessionRail.tsx` is shared by the rail and the meter; they need care when merging.

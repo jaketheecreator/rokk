@@ -423,6 +423,8 @@ pub fn run() {
             modules::rokk_guard::guard_set_sensitivity,
             modules::rokk_guard::guard_score,
             modules::rokk_guard::guard_stats,
+            modules::rokk_meter::meter_find_session,
+            modules::rokk_meter::meter_read,
             secrets::secrets_get,
             secrets::secrets_set,
             secrets::secrets_delete,

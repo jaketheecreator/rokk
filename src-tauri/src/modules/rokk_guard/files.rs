@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::path::{Component, Path, PathBuf};
 
-pub const WRAPPER_VERSION: u32 = 1;
+pub const WRAPPER_VERSION: u32 = 2;
 const STATE_TTL_SECS: u64 = 7 * 24 * 60 * 60;
 const STATS_KEEP_DAYS: usize = 60;
 /// Prompts in a session that must pass before the guard may fire again.
@@ -18,7 +18,7 @@ pub fn wrapper_script() -> String {
         r#"#!/bin/sh
 # rokk-prompt-guard v{WRAPPER_VERSION}. Written by Rokk; see docs/rokk/GUARDS.md.
 # Fails open: any problem means no output and exit code 0.
-[ -n "$TERAX_TERMINAL" ] || exit 0
+[ -n "$ROKK_TERMINAL" ] || exit 0
 app=$(cat "$HOME/.rokk/app-path" 2>/dev/null) || exit 0
 [ -x "$app" ] || exit 0
 "$app" __rokk_prompt_guard 2>/dev/null
@@ -541,7 +541,8 @@ mod tests {
         let mode = std::fs::metadata(p.wrapper()).unwrap().permissions().mode();
         assert_eq!(mode & 0o777, 0o755);
         let s = wrapper_script();
-        assert!(s.contains("[ -n \"$TERAX_TERMINAL\" ] || exit 0"));
+        assert!(s.contains("[ -n \"$ROKK_TERMINAL\" ] || exit 0"));
+        assert!(!s.contains("TERAX_TERMINAL"));
         assert!(s.contains("[ -x \"$app\" ] || exit 0"));
         assert!(s.trim_end().ends_with("exit 0"));
         assert!(!s.contains("exit 2"));

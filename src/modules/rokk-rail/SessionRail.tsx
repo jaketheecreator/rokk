@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { AgentIcon } from "@/modules/agents/lib/agentIcon";
 import { repoChanges, subscribeChanges, changesVersion } from "@/modules/rokk-changes/lib/recorder";
 import { splitPath } from "@/modules/rokk-changes/lib/changes";
+import { CreditsSlot } from "@/modules/rokk-meter";
 import { formatAgentDuration } from "@/modules/statusbar/lib/agentPill";
 import type { Tab } from "@/modules/tabs";
 import { labelFor } from "@/modules/tabs/lib/tabLabel";
@@ -104,6 +105,7 @@ export function SessionRail({
   // The active tab's log: the pane with the most recent signal.
   let events = paneLog(activePtys[0] ?? -1)?.events ?? [];
   let logAgent = paneLog(activePtys[0] ?? -1)?.agent ?? null;
+  let logPty: number | null = activePtys[0] ?? null;
   for (const id of activePtys) {
     const log = paneLog(id);
     const last = log?.events[log.events.length - 1]?.at ?? 0;
@@ -111,6 +113,7 @@ export function SessionRail({
     if (log && last >= best) {
       events = log.events;
       logAgent = log.agent;
+      logPty = id;
     }
   }
   const name = agentShortName(agent ?? logAgent);
@@ -197,6 +200,8 @@ export function SessionRail({
               </p>
             )}
           </section>
+
+          <CreditsSlot ptyId={logPty} state={state} agent={agent ?? logAgent} />
 
           {waiting !== null ? (
             <div className="rounded-[var(--rk-radius-sm)] bg-[var(--rk-attention-tint)] px-3 py-2.5">

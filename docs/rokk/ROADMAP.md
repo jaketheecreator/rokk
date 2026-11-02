@@ -11,12 +11,12 @@ Rokk exists to help beginners and vibe coders waste fewer AI credits. These feat
 | Feature | Status | Notes |
 | --- | --- | --- |
 | Vague-prompt guard v1 | Built | Settings > Guards (see GUARDS.md). A Claude Code hook asks Claude to ask before building when a prompt is vague. Local, fails open, only in Rokk terminals. |
-| Credit meter | Planned | Read Claude's session files for tokens, cost, cache and context size. |
-| Loop breaker | Planned | Stop and ask after repeated failures. |
-| Junk-folder blocker | Planned | Deny rules for node_modules and build output. |
-| Fresh-session nudge | Planned | Suggest a new session when the context is large. |
+| Credit meter v1 | Built | Credits section in the session rail (see METER.md): tokens, estimate, context, cache share, per-prompt rows, tool counts. Read-only, local, no text. |
+| Loop breaker | Planned, next | Stop and ask after repeated failures. |
+| Junk-folder blocker | Planned, next | Deny rules for node_modules and build output. |
+| Fresh-session nudge | Planned, next | Suggest a new session when the context is large. |
 | Short-report rule | Planned | Ask Claude for short reports. |
-| Weekly "what Rokk caught" summary | Planned | Built from the guard stats. |
+| Weekly "what Rokk caught" summary | Planned, next | Built from the guard stats. |
 
 ## 1. Built
 
@@ -42,13 +42,13 @@ Rokk exists to help beginners and vibe coders waste fewer AI credits. These feat
 | Remembers-you greeting and session brief | Planned | A short welcome back with what happened last time. |
 | Free command explainer | Planned | Plain-language explanation of any command, from a local dictionary. |
 | Magic words, starting with "ship it" | Planned | Go or no-go preflight, push or deploy, a launch moment, a clip, a diary entry. |
-| Rubber-duck prompt buddy | Parked: replaced by Guards; remove the top-bar icon | Prompt buddy (`src/modules/rokk-buddy`, see BUDDY.md) still works. Version 1 drafts prompts, reviews pasted reports and pastes safely into Claude, with no AI calls. Guards do the same job automatically. |
+| Rubber-duck prompt buddy | Parked: replaced by Guards; top-bar icon removed, shortcut Mod+Alt+D only | Prompt buddy (`src/modules/rokk-buddy`, see BUDDY.md) still works. Version 1 drafts prompts, reviews pasted reports and pastes safely into Claude, with no AI calls. Guards do the same job automatically. |
 | Remember-when | Planned | Search past sessions by what you did, not by command. |
 | The safety set | Planned | "Did it cheat?" detector, the stranger test, a keys vault, a production preflight, "what am I missing?". |
 | Weekly update drafter | Planned | Turns the week's sessions into a short update. |
 | Mascot packs and skins, personality packs | Planned | Open format so others can make their own. |
 | Easter eggs | Planned | Small surprises. |
-| Rail phase 2: tool narration | Planned | Needs a read-only Rust reader for ~/.claude/projects or an extension of the hooks. Claude's session files are undocumented. |
+| Rail phase 2: tool narration | Partly | Tool counts by name are delivered by the credit meter. Step-by-step narration is still planned. |
 | Changes view phase 2 | Planned | Exact attribution to Claude and line counts, using tool events. |
 | Handshake polish | Planned | Richer animation and a Settings toggle. |
 

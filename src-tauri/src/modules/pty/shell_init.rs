@@ -152,6 +152,8 @@ fn apply_common(
     cmd.env("TERM", "xterm-256color");
     cmd.env("COLORTERM", "truecolor");
     cmd.env("TERAX_TERMINAL", "1");
+    // Rokk's own marker, so the guard never fires inside the original Terax.
+    cmd.env("ROKK_TERMINAL", "1");
     if blocks {
         cmd.env("TERAX_BLOCKS", "1");
     }
@@ -663,6 +665,7 @@ mod windows {
         cmd.env("TERM", "xterm-256color");
         cmd.env("COLORTERM", "truecolor");
         cmd.env("TERAX_TERMINAL", "1");
+        cmd.env("ROKK_TERMINAL", "1");
         super::ensure_utf8_locale(&mut cmd);
         log::info!("spawning WSL shell: {distro} ({shell_path})");
         Ok(cmd)
