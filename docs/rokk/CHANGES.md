@@ -300,6 +300,41 @@ Modified:
 - `src-tauri/src/lib.rs` (upstream): two command names in `generate_handler!`.
 - `src/modules/rokk-rail/SessionRail.tsx` (Rokk): one import, the pane id of the shown log (2 lines) and the `<CreditsSlot />` line under the Session header.
 
+## Ship it checklist (version 1)
+
+- `src-tauri/src/modules/rokk_guard/magic.rs` (new): the phrase detector and the checklist text, with tests.
+- `rokk_guard/mod.rs`: magic phrases are checked first and skip the cooldown; a second switch `ship_it_enabled`; one helper keeps the shared hook installed while either switch is on; new command `guard_set_ship_it`.
+- `rokk_guard/score.rs`: a magic phrase is skipped, never vague.
+- `rokk_guard/files.rs`: `ship_it_enabled` in the config and a per-day `ship_it_runs` count.
+- `src-tauri/src/lib.rs` (upstream): one command name in `generate_handler!`.
+- `src/settings/sections/GuardsSection.tsx` and `src/modules/rokk-guards/lib/`: the "Ship it checklist" card, the shared status row and consent text for both guards, with tests. "Remove everything" now sits below both cards.
+
+## Guard test fix and a meter warning
+
+- The test `switching_is_idempotent_with_exactly_one_entry` counted the marker text, which appears twice in our one hook command (the `-x` check and the call). It now parses settings.json and counts UserPromptSubmit entries whose command contains the marker. The code was right: `add` already removes every Rokk entry before adding one.
+- New test `enable_and_repair_collapse_two_rokk_entries_into_one`: from a file with two Rokk entries, enabling the vague guard or Ship it leaves exactly one, and every other hook and key stays.
+- `rokk_meter/parse.rs`: removed the unused `sidechain` field of `Resp`. Sub-agent handling is unchanged: the context size already uses the line's own sidechain flag.
+
+## Stage mode (Phase 1)
+
+Added:
+
+- `src/modules/rokk-stage/`:
+  - `lib/stage.ts`: store, wallpapers, the toggle, exit rules, auto-hide and frame size; with tests.
+  - `StageToggle.tsx`: the top bar button.
+  - `StageSlot.tsx`: mounts the layer, exit rules, live region.
+  - `index.tsx` and `StageLayer.tsx`: the lazy layer with the wallpaper, mark and controls.
+  - `stage.css`: lazy, active only under `html[data-rokk-stage="on"]`.
+- `docs/rokk/STAGE.md`.
+
+Modified (upstream files):
+
+- `src/app/App.tsx`: two imports, the lazy `RokkStage`, the `"stage.toggle"` handler and the `<RokkStageSlot>` line after the Toaster.
+- `src/modules/shortcuts/shortcuts.ts`: `"stage.toggle"` in `ShortcutId` and its entry (`Mod+Alt+S`, View).
+- `src/modules/header/Header.tsx`: the `StageToggle` import, `data-rokk-zone="header"` on the root, and `<StageToggle />` after `<RailToggle />`.
+- `src/modules/statusbar/StatusBar.tsx`: `data-rokk-zone="statusbar"` on the footer.
+- `TabBar.tsx` and `SidebarRail.tsx`: unchanged. They sit inside the header and `#sidebar`, which already have stable selectors.
+
 ## Visible strings left as Terax on purpose
 
 - `src/modules/updater/UpdaterDialog.tsx`: "Terax vX is available", "Restart Terax", and the `Terax_*.deb` / `Terax-*.rpm` commands. The updater still serves Terax releases, so this text is accurate until the feed changes (see `docs/rokk/TODO.md`).

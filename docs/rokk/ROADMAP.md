@@ -41,7 +41,9 @@ Rokk exists to help beginners and vibe coders waste fewer AI credits. These feat
 | Session minimap | Planned | A thin overview of a long session. |
 | Remembers-you greeting and session brief | Planned | A short welcome back with what happened last time. |
 | Free command explainer | Planned | Plain-language explanation of any command, from a local dictionary. |
-| Magic words, starting with "ship it" | Planned | Go or no-go preflight, push or deploy, a launch moment, a clip, a diary entry. |
+| "Ship it" | Built v1 | Type ship it and Claude runs a go or no-go checklist (Settings > Guards, see GUARDS.md). Never commits, pushes or deploys on its own. |
+| Production preflight | Partly built | Secrets and loose ends are covered by "Ship it"; deploy checks are not. |
+| Other magic words | Planned | For example "explain this" and "brief". |
 | Rubber-duck prompt buddy | Parked: replaced by Guards; top-bar icon removed, shortcut Mod+Alt+D only | Prompt buddy (`src/modules/rokk-buddy`, see BUDDY.md) still works. Version 1 drafts prompts, reviews pasted reports and pastes safely into Claude, with no AI calls. Guards do the same job automatically. |
 | Remember-when | Planned | Search past sessions by what you did, not by command. |
 | The safety set | Planned | "Did it cheat?" detector, the stranger test, a keys vault, a production preflight, "what am I missing?". |
@@ -56,7 +58,8 @@ Rokk exists to help beginners and vibe coders waste fewer AI credits. These feat
 
 | Feature | Status | Notes |
 | --- | --- | --- |
-| Stage mode | Planned | Original wallpapers (Dune, Tide, Night market, Moss, Paper, Orbit), your work centered, scalable by drag handles and Small, Medium and Fill presets, portrait and landscape. Boards exist on the design canvas. |
+| Stage mode, Phase 1 | Built | Stage view with wallpaper, frame, mark, Exit pill and picker (see STAGE.md). `Mod+Alt+S` or the top bar play button. |
+| Stage mode, Phases 2 to 4 | Planned | Recording, window shapes, share panel (see STAGE_MAP.md). |
 | Recording | Planned | Record button in the top bar, a floating pill and a shortcut. The user picks the capture each time: preview only, preview plus activity, whole screen, or a chosen window. Recording the preview cannot come from app code because it is a cross-origin iframe, so it needs screen capture. |
 | Live preview while recording | Planned | Click through the running project while recording. Terminal hidden by default. |
 | Mobile app preview | Planned | Realistic iPhone-style frame we draw ourselves. Needs a simulator or emulator window capture; macOS first. Check Apple's device image rules before using any Apple artwork. |

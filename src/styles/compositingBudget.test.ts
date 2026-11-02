@@ -46,6 +46,10 @@ const ALLOWED: Record<string, { allows: string[]; why: string }> = {
     allows: ["backdrop filter"],
     why: "plan review overlay, mounted only during a review",
   },
+  "modules/rokk-stage/stage.css": {
+    allows: ["backdrop filter", "filter blur"],
+    why: "Rokk stage mode glass controls (backdrop-filter: blur), only while stage mode is on",
+  },
   "modules/editor/lib/chromeTheme.ts": {
     allows: ["backdrop filter"],
     why: "CodeMirror tooltip, exists only while shown",

@@ -2,7 +2,16 @@ import { createElement } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { ConsentDetails, GuardsView, problemDetails } from "@/settings/sections/GuardsSection";
-import { type GuardStatus, needsRepair, pageState, repairReason, statsLine, toggleAction } from "./guards";
+import {
+  type GuardStatus,
+  hookWanted,
+  needsRepair,
+  pageState,
+  repairReason,
+  shipItStatsLine,
+  statsLine,
+  toggleAction,
+} from "./guards";
 
 function status(over: Partial<GuardStatus> = {}): GuardStatus {
   return {
@@ -170,7 +179,62 @@ describe("problem alert", () => {
   it("copies the message and the state, nothing else", () => {
     const text = problemDetails(problem, { ...ON, installed: false });
     expect(text).toBe(
-      `Rokk guard problem: ${problem}\nState: notInstalled; enabled true, installed false, files ok true, consented true, version 1`,
+      `Rokk guard problem: ${problem}\nState: notInstalled; enabled true, ship it false, installed false, files ok true, consented true, version 1`,
     );
+  });
+});
+
+describe("Ship it card", () => {
+  const SHIP = status({ shipItEnabled: true, consented: true, installed: true, filesOk: true });
+
+  it("has its own switch, copy, checks and honest note", () => {
+    const html = view(status());
+    expect(html).toContain("Ship it checklist");
+    expect(html).toContain("Type ship it and Claude runs a go or no-go check before anything is pushed.");
+    expect(html).toContain("It never commits, pushes or");
+    expect(html).toContain("Whether the project&#x27;s own checks pass");
+    expect(html).toContain("It checks common mistakes. It does not make your app secure.");
+    expect(html.match(/role="switch"/g)).toHaveLength(2);
+    expect(html.toLowerCase()).not.toContain("coming soon");
+  });
+
+  it("maps its own on and off states, sharing the hook status", () => {
+    expect(pageState(SHIP, "shipIt")).toBe("on");
+    expect(pageState(SHIP, "vague")).toBe("off");
+    expect(pageState(ON, "shipIt")).toBe("off");
+    expect(pageState({ ...SHIP, installed: false }, "shipIt")).toBe("notInstalled");
+    expect(hookWanted(SHIP)).toBe(true);
+    expect(hookWanted(status())).toBe(false);
+    // Only Ship it on and the hook missing: Repair is offered.
+    expect(needsRepair({ ...SHIP, installed: false })).toBe(true);
+    expect(needsRepair(SHIP)).toBe(false);
+    // Both off but the hook still there.
+    expect(repairReason(status({ installed: true }))).toBe(
+      "The hook is still in Claude Code although both guards are off.",
+    );
+  });
+
+  it("renders its switch checked when on", () => {
+    const html = view(SHIP);
+    expect(html).toMatch(/aria-labelledby="guard-ship-title"[^>]*aria-checked="true"|aria-checked="true"[^>]*aria-labelledby="guard-ship-title"/);
+    expect(html).toMatch(/aria-checked="false"[^>]*aria-labelledby="guard-clarify-title"|aria-labelledby="guard-clarify-title"[^>]*aria-checked="false"/);
+  });
+
+  it("shows ran N times only after a run", () => {
+    expect(shipItStatsLine(null)).toBeNull();
+    expect(shipItStatsLine({ checked: 4, fired: 1, skipped: 0, shipItRuns: 0, lastFire: null })).toBeNull();
+    expect(shipItStatsLine({ checked: 4, fired: 1, skipped: 0, shipItRuns: 1, lastFire: null })).toBe(
+      "This week: ran 1 time",
+    );
+    expect(view(SHIP, { checked: 9, fired: 1, skipped: 0, shipItRuns: 3, lastFire: null })).toContain(
+      "This week: ran 3 times",
+    );
+    expect(view(SHIP)).not.toContain("This week: ran");
+  });
+
+  it("the consent text names both guards", () => {
+    const html = renderToString(createElement(ConsentDetails, { status: status() }));
+    expect(html).toContain("Clarify vague prompts");
+    expect(html).toContain("Ship it checklist");
   });
 });

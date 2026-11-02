@@ -20,12 +20,15 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
   EXAMPLES,
+  type Feature,
   type GuardScore,
   type GuardStatus,
   needsRepair,
   pageState,
   repairReason,
   type Sensitivity,
+  SHIP_IT_CHECKS,
+  shipItStatsLine,
   statsLine,
   toggleAction,
   VERDICT_LABEL,
@@ -49,7 +52,7 @@ export default function GuardsSection() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
-  const [consentOpen, setConsentOpen] = useState(false);
+  const [consentFor, setConsentFor] = useState<Feature | null>(null);
   const [removeOpen, setRemoveOpen] = useState(false);
 
   const apply = useCallback((s: GuardStatus) => {
@@ -79,12 +82,15 @@ export default function GuardsSection() {
     ipc.guardStats().then(setStats, () => setStats(null));
   }, [apply]);
 
-  const onToggle = (on: boolean) => {
+  const turnOn = (feature: Feature) =>
+    void run(feature === "vague" ? () => ipc.guardEnable(sensitivity) : () => ipc.guardSetShipIt(true), "Turned on.");
+
+  const onToggle = (feature: Feature, on: boolean) => {
     if (!status) return;
     const action = toggleAction(status, on);
-    if (action === "consent") setConsentOpen(true);
-    else if (action === "enable") void run(() => ipc.guardEnable(sensitivity), "Turned on.");
-    else void run(ipc.guardDisable, "Turned off.");
+    if (action === "consent") setConsentFor(feature);
+    else if (action === "enable") turnOn(feature);
+    else void run(feature === "vague" ? ipc.guardDisable : () => ipc.guardSetShipIt(false), "Turned off.");
   };
 
   const onSensitivity = (value: string) => {
@@ -95,7 +101,12 @@ export default function GuardsSection() {
 
   const onRepair = () => {
     if (!status) return;
-    void run(status.enabled ? () => ipc.guardEnable(sensitivity) : ipc.guardDisable, "Repaired.");
+    const work = status.enabled
+      ? () => ipc.guardEnable(sensitivity)
+      : status.shipItEnabled
+        ? () => ipc.guardSetShipIt(true)
+        : ipc.guardDisable;
+    void run(work, "Repaired.");
   };
 
   return (
@@ -107,22 +118,25 @@ export default function GuardsSection() {
         busy={busy}
         message={message}
         failure={failure}
-        onToggle={onToggle}
+        onToggle={(on) => onToggle("vague", on)}
+        onToggleShipIt={(on) => onToggle("shipIt", on)}
         onSensitivity={onSensitivity}
         onRepair={onRepair}
         onRemoveAll={() => setRemoveOpen(true)}
       />
       {status ? (
-        <AlertDialog open={consentOpen} onOpenChange={setConsentOpen}>
+        <AlertDialog open={consentFor !== null} onOpenChange={(o) => !o && setConsentFor(null)}>
           <AlertDialogContent className="data-[size=default]:sm:max-w-lg">
             <AlertDialogHeader>
-              <AlertDialogTitle>Turn on "Clarify vague prompts"?</AlertDialogTitle>
+              <AlertDialogTitle>
+                Turn on "{consentFor === "shipIt" ? "Ship it checklist" : "Clarify vague prompts"}"?
+              </AlertDialogTitle>
               <AlertDialogDescription>This is exactly what will change on this Mac.</AlertDialogDescription>
             </AlertDialogHeader>
             <ConsentDetails status={status} />
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={() => void run(() => ipc.guardEnable(sensitivity), "Turned on.")}>
+              <AlertDialogAction onClick={() => consentFor && turnOn(consentFor)}>
                 Turn on
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -159,6 +173,7 @@ export default function GuardsSection() {
 export function ConsentDetails({ status }: { status: GuardStatus }) {
   return (
     <ul className="flex list-disc flex-col gap-2 pl-5 text-[12px] leading-relaxed">
+      <li>One hook serves both guards, "Clarify vague prompts" and "Ship it checklist". Each has its own switch.</li>
       <li>
         One hook entry is added to <code className="font-mono">{status.settingsPath}</code>. Its command:
         <code className="mt-1 block rounded bg-muted/50 px-2 py-1.5 font-mono text-[11px] break-all select-text">
@@ -193,6 +208,7 @@ type ViewProps = {
   /** The last command's failure, in plain language. */
   failure?: string | null;
   onToggle: (on: boolean) => void;
+  onToggleShipIt?: (on: boolean) => void;
   onSensitivity: (value: string) => void;
   onRepair: () => void;
   onRemoveAll: () => void;
@@ -247,21 +263,7 @@ export function GuardsView(props: ViewProps) {
 
         <p className={HINT}>Works in terminals opened in Rokk. Start a new Claude session after turning it on.</p>
 
-        {state === "unsupported" ? (
-          <p className="text-[12px]">Guards work on macOS and Linux for now.</p>
-        ) : (
-          <div className="flex items-center justify-between gap-4 text-[12px]">
-            <span>
-              Installed in Claude Code: <strong className="font-medium">{status?.installed ? "Yes" : "No"}</strong>
-              {repairReason(status) ? <span className={HINT}> {repairReason(status)}</span> : null}
-            </span>
-            {needsRepair(status) ? (
-              <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11px]" disabled={busy} onClick={props.onRepair}>
-                Repair
-              </Button>
-            ) : null}
-          </div>
-        )}
+        <InstallRow status={status} busy={busy} onRepair={props.onRepair} />
 
         <ProblemAlert status={status} problem={props.failure ?? status?.error ?? null} />
 
@@ -281,22 +283,78 @@ export function GuardsView(props: ViewProps) {
 
         <TestPrompt sensitivity={sensitivity} />
 
-        <p aria-live="polite" className="min-h-4 text-[11.5px] text-[var(--rk-text-2)]">
-          {message}
-        </p>
-
-        <div className="flex justify-end border-t border-border/60 pt-3">
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-7 px-2.5 text-[11px] text-destructive hover:text-destructive"
-            disabled={busy || state === "unsupported" || state === "loading"}
-            onClick={props.onRemoveAll}
-          >
-            Remove everything
-          </Button>
-        </div>
       </section>
+
+      <section className={CARD} aria-labelledby="guard-ship-title">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex min-w-0 flex-col gap-1">
+            <h2 id="guard-ship-title" className="text-[13px] font-medium">
+              Ship it checklist
+            </h2>
+            <p className={HINT}>
+              Type ship it and Claude runs a go or no-go check before anything is pushed. It never commits, pushes or
+              deploys on its own.
+            </p>
+          </div>
+          <Switch
+            aria-labelledby="guard-ship-title"
+            checked={status?.shipItEnabled ?? false}
+            disabled={disabled}
+            onCheckedChange={props.onToggleShipIt}
+          />
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <span className="text-[11px] font-medium text-[var(--rk-text-2)]">What it checks</span>
+          <ul className="flex list-disc flex-col gap-0.5 pl-5 text-[12px]">
+            {SHIP_IT_CHECKS.map((c) => (
+              <li key={c}>{c}</li>
+            ))}
+          </ul>
+        </div>
+
+        <p className={HINT}>Works in terminals opened in Rokk. Start a new Claude session after turning it on.</p>
+
+        <InstallRow status={status} busy={busy} onRepair={props.onRepair} />
+
+        {shipItStatsLine(stats) ? <p className="text-[12px]">{shipItStatsLine(stats)}</p> : null}
+
+        <p className={HINT}>It checks common mistakes. It does not make your app secure.</p>
+      </section>
+
+      <p aria-live="polite" className="-mt-4 min-h-4 text-[11.5px] text-[var(--rk-text-2)]">
+        {message}
+      </p>
+
+      <div className="-mt-4 flex justify-end">
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 px-2.5 text-[11px] text-destructive hover:text-destructive"
+          disabled={busy || state === "unsupported" || state === "loading"}
+          onClick={props.onRemoveAll}
+        >
+          Remove everything
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/** The shared hook status, shown in each card. */
+function InstallRow({ status, busy, onRepair }: { status: GuardStatus | null; busy: boolean; onRepair: () => void }) {
+  if (status && !status.supported) return <p className="text-[12px]">Guards work on macOS and Linux for now.</p>;
+  return (
+    <div className="flex items-center justify-between gap-4 text-[12px]">
+      <span>
+        Installed in Claude Code: <strong className="font-medium">{status?.installed ? "Yes" : "No"}</strong>
+        {repairReason(status) ? <span className={HINT}> {repairReason(status)}</span> : null}
+      </span>
+      {needsRepair(status) ? (
+        <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11px]" disabled={busy} onClick={onRepair}>
+          Repair
+        </Button>
+      ) : null}
     </div>
   );
 }
@@ -359,7 +417,7 @@ function TestPrompt({ sensitivity }: { sensitivity: Sensitivity }) {
  * contents or prompt text. */
 export function problemDetails(problem: string, status: GuardStatus | null): string {
   const flags = status
-    ? `enabled ${status.enabled}, installed ${status.installed}, files ok ${status.filesOk}, consented ${status.consented}, version ${status.version}`
+    ? `enabled ${status.enabled}, ship it ${Boolean(status.shipItEnabled)}, installed ${status.installed}, files ok ${status.filesOk}, consented ${status.consented}, version ${status.version}`
     : "status unknown";
   return `Rokk guard problem: ${problem}\nState: ${pageState(status)}; ${flags}`;
 }

@@ -256,7 +256,10 @@ fn resolve(p: &Path) -> Option<PathBuf> {
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct GuardConfig {
+    /// "Clarify vague prompts" is on.
     pub enabled: bool,
+    /// "Ship it checklist" is on.
+    pub ship_it_enabled: bool,
     pub consented: bool,
     pub sensitivity: Sensitivity,
 }
@@ -321,6 +324,7 @@ pub struct DayCounts {
     pub checked: u64,
     pub fired: u64,
     pub skipped: u64,
+    pub ship_it_runs: u64,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
@@ -336,6 +340,7 @@ pub struct WeekStats {
     pub checked: u64,
     pub fired: u64,
     pub skipped: u64,
+    pub ship_it_runs: u64,
     pub last_fire: Option<u64>,
 }
 
@@ -356,6 +361,17 @@ pub fn record(stats: &mut GuardStats, verdict: Verdict, fired: bool, now: u64) {
     }
 }
 
+/// Records one ship-it run. Takes no text.
+pub fn record_ship_it(stats: &mut GuardStats, now: u64) {
+    let day = stats.days.entry(day_key(now)).or_default();
+    day.checked += 1;
+    day.ship_it_runs += 1;
+    while stats.days.len() > STATS_KEEP_DAYS {
+        let oldest = stats.days.keys().next().cloned().unwrap();
+        stats.days.remove(&oldest);
+    }
+}
+
 /// Totals for the last seven days, today included.
 pub fn week(stats: &GuardStats, now: u64) -> WeekStats {
     let keys: Vec<String> = (0..7).map(|d| day_key(now.saturating_sub(d * 86_400))).collect();
@@ -368,6 +384,7 @@ pub fn week(stats: &GuardStats, now: u64) -> WeekStats {
             out.checked += d.checked;
             out.fired += d.fired;
             out.skipped += d.skipped;
+            out.ship_it_runs += d.ship_it_runs;
         }
     }
     out
@@ -597,6 +614,9 @@ mod tests {
         let verdict = super::super::score::score(prompt, Default::default()).verdict;
         let mut s = GuardStats::default();
         record(&mut s, verdict, true, now());
+        // A ship-it run is a count too.
+        record_ship_it(&mut s, now());
+        assert_eq!(week(&s, now()).ship_it_runs, 1);
         write_json(&p, &p.stats(), &s).unwrap();
         let mut st = GuardState::default();
         cooldown_step(&mut st, "session-1", true, now());
@@ -605,6 +625,7 @@ mod tests {
             let text = std::fs::read_to_string(file).unwrap();
             assert!(!text.contains("SECRET"));
             assert!(!text.contains("make it better"));
+            assert!(!text.contains("ship it"));
         }
     }
 

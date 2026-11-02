@@ -5,6 +5,7 @@ export const guardStatus = () => invoke<GuardStatus>("guard_status");
 export const guardEnable = (sensitivity: Sensitivity) =>
   invoke<GuardStatus>("guard_enable", { sensitivity });
 export const guardDisable = () => invoke<GuardStatus>("guard_disable");
+export const guardSetShipIt = (enabled: boolean) => invoke<GuardStatus>("guard_set_ship_it", { enabled });
 export const guardRemoveAll = () => invoke<GuardStatus>("guard_remove_all");
 export const guardSetSensitivity = (sensitivity: Sensitivity) =>
   invoke<GuardStatus>("guard_set_sensitivity", { sensitivity });

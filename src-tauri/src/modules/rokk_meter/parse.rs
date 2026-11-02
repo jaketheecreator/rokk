@@ -184,7 +184,6 @@ struct Resp {
     model: Option<String>,
     t: Tokens,
     at_ms: u64,
-    sidechain: bool,
     fast: bool,
     us_only: bool,
 }
@@ -262,7 +261,7 @@ impl Session {
             }
         }
         let Some(u) = msg.usage else { return };
-        let r = self.responses.entry(id.clone()).or_insert_with(|| Resp { at_ms: at, sidechain, ..Default::default() });
+        let r = self.responses.entry(id.clone()).or_insert_with(|| Resp { at_ms: at, ..Default::default() });
         let w = u.cache_creation.unwrap_or_default();
         let max = |a: &mut u64, b: Option<u64>| *a = (*a).max(b.unwrap_or(0));
         max(&mut r.t.input, u.input_tokens);

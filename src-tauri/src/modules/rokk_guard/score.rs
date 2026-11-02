@@ -195,6 +195,9 @@ fn skip_reason(p: &str) -> Option<&'static str> {
     if p.is_empty() {
         return Some("Empty prompt");
     }
+    if super::magic::magic(p).is_some() {
+        return Some("A magic phrase (ship it), handled by the Ship it checklist");
+    }
     match p.chars().next() {
         Some('/') => return Some("Slash command"),
         Some('!') => return Some("Shell command"),

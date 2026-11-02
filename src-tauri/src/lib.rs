@@ -421,6 +421,7 @@ pub fn run() {
             modules::rokk_guard::guard_disable,
             modules::rokk_guard::guard_remove_all,
             modules::rokk_guard::guard_set_sensitivity,
+            modules::rokk_guard::guard_set_ship_it,
             modules::rokk_guard::guard_score,
             modules::rokk_guard::guard_stats,
             modules::rokk_meter::meter_find_session,

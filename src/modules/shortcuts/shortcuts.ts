@@ -48,6 +48,7 @@ export type ShortcutId =
   | "sidebar.toggle"
   | "rail.toggle"
   | "buddy.toggle"
+  | "stage.toggle"
   | "editor.undo"
   | "editor.redo"
   | "editor.save"
@@ -319,6 +320,12 @@ export const SHORTCUTS: Shortcut[] = [
     label: "Open Prompt buddy",
     group: "AI",
     defaultBindings: [{ [MOD_PROP]: true, alt: true, key: "d" }],
+  },
+  {
+    id: "stage.toggle",
+    label: "Toggle stage mode",
+    group: "View",
+    defaultBindings: [{ [MOD_PROP]: true, alt: true, key: "s" }],
   },
   {
     id: "explorer.focus",

@@ -2,7 +2,7 @@
 
 Guards are automatic helpers that watch every prompt sent to Claude Code in a Rokk terminal. They run on this Mac and cost no credits themselves. Turn them on in Settings > Guards.
 
-Version 1 has one guard: **Clarify vague prompts**.
+There are two guards, each with its own switch, served by one hook: **Clarify vague prompts** and **Ship it checklist**.
 
 ## What it does
 
@@ -33,6 +33,31 @@ The detector is `src-tauri/src/modules/rokk_guard/score.rs`, a pure function wit
 **Specificity signals** (each kind counts once): a file name or path, a code name (backticks, camelCase, snake_case), a URL, error text or an error code, a number with a unit or a quantity, a quoted string, and a stated outcome ("should", "so that", "instead of", "expected", "when ... then", "I want it to").
 
 **Vague** when there are no signals and fewer than 25 words, or when a vague phrase from the table is present with at most one signal and fewer than 40 words. **Medium** sensitivity also fires with at most one signal and fewer than 15 words.
+
+## Ship it checklist
+
+When the whole prompt is a "ship it" phrase, the hook adds a go or no-go checklist to Claude's context and shows "Rokk: running the ship-it checklist." Nothing runs by itself, nothing is pushed, and nothing is sent anywhere.
+
+**Phrases** (the whole prompt, after trimming, lowercasing, collapsing spaces and removing trailing `.`, `!` and `?`): "ship it", "ship it now", "ship this", "ship", "lets ship it", "let's ship it", "lets ship", "ready to ship". Anything longer, such as "ship it to production tomorrow with vercel", goes through the normal guard. The phrase check runs before the vagueness score, is exempt from its cooldown, and a phrase is never judged vague.
+
+The checklist Claude gets (`additionalContext`), exactly:
+
+> Rokk ship-it checklist. The user wants to ship. Do NOT commit, push, deploy or publish anything yet. Work in this order and keep the whole reply under 25 lines. 1. What would ship: run git status and git diff --stat (read-only) and list the changed files in plain language with a one-line summary of the work; if this is not a git repository, say so and stop. 2. Does it work: run the project's own checks that exist in its scripts or config (type check, lint, tests, build), one at a time, without installing anything, and report each as passed, failed or not found; do not fix failures now. 3. Secrets: check that .env files are git-ignored and not tracked, and search only the changed files for API-key-shaped text, private keys and hardcoded passwords; report file names and line numbers only and never print a secret value. 4. Loose ends: in the added lines of the diff, look for debug logging, debugger statements, TODO or FIXME, skipped or focused tests, any single file over 5 MB, and build output folders. 5. Verdict: say Go if the checks passed and nothing risky was found, otherwise say Wait with the one or two things to fix first. Then list what you could not check (for example whether it looks right on screen) and ask: Want me to commit and push? Do nothing further until the user says yes. If they say yes, commit with a clear message, push only the current branch, never force, and never deploy.
+
+**Limits:**
+
+- Claude Code's own permission prompts still apply to every command the checklist asks Claude to run. Rokk does not bypass them.
+- It relies on Claude following instructions, so it is a strong nudge, not a guarantee.
+- It checks common mistakes. It does not make an app secure.
+
+## Switches and the shared hook
+
+- `~/.rokk/guard-config.json` holds `enabled` (Clarify vague prompts) and `ship_it_enabled` (Ship it checklist, off by default).
+- The hook entry is installed while at least one switch is on. It is removed, with the files kept, when both are off.
+- Turning either on installs the hook if it is missing, after the same one-time consent dialog, which says that the hook serves both guards.
+- The program checks each switch before acting, and fails open as before.
+- Repair re-installs the hook when either switch is on, and removes it when both are off.
+- The stats file counts `ship_it_runs` per day: a count only, never any text.
 
 ## Exactly what it writes
 

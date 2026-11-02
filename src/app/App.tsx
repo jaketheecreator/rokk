@@ -136,6 +136,8 @@ import {
 import { BuddyGate, toggleBuddy } from "@/modules/rokk-buddy/BuddyToggle";
 import { RokkRailSlot } from "@/modules/rokk-rail/RailSlot";
 import { toggleRail } from "@/modules/rokk-rail/lib/railState";
+import { RokkStageSlot } from "@/modules/rokk-stage/StageSlot";
+import { toggleStage } from "@/modules/rokk-stage/lib/stage";
 import { WorkspaceSurface } from "./components/WorkspaceSurface";
 import { useAppCloseGuard } from "./hooks/useAppCloseGuard";
 import {
@@ -155,6 +157,7 @@ const BenchBridge = __TERAX_BENCH__
 const RokkHandshake = lazy(() => import("@/modules/rokk-handshake"));
 const RokkChanges = lazy(() => import("@/modules/rokk-changes"));
 const RokkRail = lazy(() => import("@/modules/rokk-rail"));
+const RokkStage = lazy(() => import("@/modules/rokk-stage"));
 const RokkBuddy = lazy(() => import("@/modules/rokk-buddy"));
 
 export default function App() {
@@ -957,6 +960,7 @@ export default function App() {
       "sidebar.toggle": toggleSidebar,
       "rail.toggle": toggleRail,
       "buddy.toggle": toggleBuddy,
+      "stage.toggle": () => toggleStage("keyboard"),
       "explorer.focus": toggleExplorerFocus,
       "explorer.toggleHidden": toggleHiddenFiles,
       "view.zoomIn": zoomIn,
@@ -1611,6 +1615,7 @@ export default function App() {
             onActivate={onActivateAgent}
           />
           <Toaster position="bottom-right" />
+          <RokkStageSlot terminals={tabs.filter((t) => t.kind === "terminal").length} zen={zenMode}><Suspense fallback={null}><RokkStage /></Suspense></RokkStageSlot>
           <BuddyGate><Suspense fallback={null}><RokkBuddy tabs={tabs} activeId={activeId} repoRoot={sourceControl.repo?.repoRoot ?? null} /></Suspense></BuddyGate>
           <Suspense fallback={null}><RokkHandshake tabs={tabs} activeId={activeId} /></Suspense>
 

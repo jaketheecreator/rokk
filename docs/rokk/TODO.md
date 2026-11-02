@@ -80,3 +80,24 @@ Renaming the compiled program breaks the places below, so migrate them together 
 - [ ] **Weekly summary** of usage, built from the meter and the guard stats.
 - [ ] **Active session matching** is by folder and time; reading the session id from a hook would be exact (the guard hook sees `session_id`).
 - [ ] `src-tauri/src/lib.rs` and `src-tauri/src/modules/mod.rs` are upstream files, and `src/modules/rokk-rail/SessionRail.tsx` is shared by the rail and the meter; they need care when merging.
+
+## Ship it checklist
+
+- [ ] **Windows support**, with the guard hook.
+- [ ] **A short result in the rail** when the checklist finishes (Go or Wait). Needs Claude's report text, which Rokk does not read today.
+- [ ] **More phrases and languages.**
+- [ ] **Detect how the project deploys** (for example Vercel or Netlify config) and add deploy checks.
+
+## Stage mode
+
+- [ ] **Phase 2, record and stop:**
+  - Use ScreenCaptureKit through the `screencapturekit` crate; adding the crate needs the owner's approval.
+  - Show a menu bar recording indicator outside the captured area.
+  - The Screen Recording permission flow can only be tested in a packaged build.
+- [ ] **Phase 3, window shapes and looks:**
+  - Portrait and landscape window shapes, using window permissions.
+  - Remember and restore the previous size and position, so the window-state plugin does not save the stage size.
+  - Hide the traffic lights.
+  - A phone frame drawn by us.
+- [ ] **Phase 4, share panel:** open the folder, copy a caption, open the upload page.
+- [ ] **Merging upstream:** `src/app/App.tsx`, `src/modules/header/Header.tsx`, `src/modules/statusbar/StatusBar.tsx` and `src/modules/shortcuts/shortcuts.ts` are touched by Stage mode. `TabBar.tsx` and `SidebarRail.tsx` are not touched, but stage.css depends on their place inside the header and `#sidebar`. All are upstream files that need care when merging upstream.

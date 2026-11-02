@@ -1,6 +1,8 @@
-// Rokk guards. v1 has one: "Clarify vague prompts", a Claude Code
-// UserPromptSubmit hook that asks Claude to ask before building when a
-// prompt is too vague. See docs/rokk/GUARDS.md.
+// Rokk guards, served by one Claude Code UserPromptSubmit hook:
+// "Clarify vague prompts" asks Claude to ask before building when a prompt
+// is too vague, and "Ship it checklist" turns "ship it" into a go or no-go
+// check. Each has its own switch; the hook is installed while at least one
+// is on. See docs/rokk/GUARDS.md.
 //
 // The hook runs only where ROKK_TERMINAL is set (Rokk's terminals; the
 // original Terax sets only TERAX_TERMINAL). It is a wrapper script in ~/.rokk/hooks that runs this binary with
@@ -8,6 +10,7 @@
 // problem means no output and exit code 0, so Claude carries on as normal.
 
 pub mod files;
+pub mod magic;
 pub mod score;
 pub mod settings_edit;
 
@@ -23,14 +26,22 @@ pub const SUBCOMMAND: &str = "__rokk_prompt_guard";
 const SUPPORTED: bool = cfg!(unix);
 
 pub fn hook_json() -> String {
+    output_json(SYSTEM_MESSAGE, ADDITIONAL_CONTEXT)
+}
+
+fn output_json(message: &str, context: &str) -> String {
     json!({
-        "systemMessage": SYSTEM_MESSAGE,
+        "systemMessage": message,
         "hookSpecificOutput": {
             "hookEventName": "UserPromptSubmit",
-            "additionalContext": ADDITIONAL_CONTEXT,
+            "additionalContext": context,
         }
     })
     .to_string()
+}
+
+pub fn ship_it_json() -> String {
+    output_json(magic::SHIP_IT_MESSAGE, magic::SHIP_IT_CONTEXT)
 }
 
 /// Entry point for `<app> __rokk_prompt_guard`. Never returns, always exits 0.
@@ -76,6 +87,13 @@ fn respond(buf: &[u8], paths: &Paths) -> Option<String> {
     let session = input.get("session_id").and_then(Value::as_str).unwrap_or("");
 
     let config: GuardConfig = files::read_json(&paths.config());
+    // Magic phrases first; they skip the vagueness cooldown.
+    if config.ship_it_enabled && magic::magic(prompt) == Some(magic::Magic::ShipIt) {
+        let mut stats: GuardStats = files::read_json(&paths.stats());
+        files::record_ship_it(&mut stats, files::now());
+        let _ = files::write_json(paths, &paths.stats(), &stats);
+        return Some(ship_it_json());
+    }
     if !config.enabled {
         return None;
     }
@@ -123,8 +141,10 @@ fn current_exe() -> Option<String> {
 #[serde(rename_all = "camelCase")]
 pub struct GuardStatus {
     supported: bool,
-    /// The person turned the guard on (and has not turned it off).
+    /// "Clarify vague prompts" is on.
     enabled: bool,
+    /// "Ship it checklist" is on.
+    ship_it_enabled: bool,
     /// The consent dialog was accepted at least once.
     consented: bool,
     /// Our hook entry is in ~/.claude/settings.json.
@@ -160,6 +180,7 @@ fn status_at(paths: &Paths) -> GuardStatus {
     GuardStatus {
         supported: SUPPORTED,
         enabled: config.enabled,
+        ship_it_enabled: config.ship_it_enabled,
         consented: config.consented,
         installed,
         outdated,
@@ -189,23 +210,49 @@ fn write_settings(paths: &Paths, old: Option<&str>, new: &str) -> Result<(), Str
     paths.write(&paths.settings(), new.as_bytes(), None)
 }
 
-fn enable_at(paths: &Paths, exe: &str, sensitivity: Option<Sensitivity>) -> Result<(), String> {
+/// Sets either switch and keeps the one hook entry in step: installed while
+/// at least one feature is on, removed (files kept) when both are off.
+fn set_features_at(
+    paths: &Paths,
+    exe: &str,
+    vague: Option<bool>,
+    ship_it: Option<bool>,
+    sensitivity: Option<Sensitivity>,
+) -> Result<(), String> {
+    let mut config: GuardConfig = files::read_json(&paths.config());
+    let had_config = std::fs::symlink_metadata(paths.config()).is_ok();
+    if let Some(v) = vague {
+        config.enabled = v;
+    }
+    if let Some(v) = ship_it {
+        config.ship_it_enabled = v;
+    }
+    if let Some(s) = sensitivity {
+        config.sensitivity = s;
+    }
+    if !(config.enabled || config.ship_it_enabled) {
+        remove_entry(paths)?;
+        // Turning off before anything was set up writes nothing.
+        return if had_config { files::write_json(paths, &paths.config(), &config) } else { Ok(()) };
+    }
     if !SUPPORTED {
         return Err("Guards work on macOS and Linux for now.".into());
+    }
+    if exe.is_empty() {
+        return Err("Rokk could not find its own program path.".into());
     }
     let old = paths.read_settings()?;
     // Compute the edit first: invalid JSON stops everything before any write.
     let new = settings_edit::add(old.as_deref().unwrap_or(""))?;
     paths.write(&paths.wrapper(), files::wrapper_script().as_bytes(), Some(0o755))?;
     paths.write(&paths.app_path(), exe.as_bytes(), None)?;
-    let mut config: GuardConfig = files::read_json(&paths.config());
-    config.enabled = true;
     config.consented = true;
-    if let Some(s) = sensitivity {
-        config.sensitivity = s;
-    }
     files::write_json(paths, &paths.config(), &config)?;
     write_settings(paths, old.as_deref(), &new)
+}
+
+fn enable_at(paths: &Paths, exe: &str, sensitivity: Option<Sensitivity>) -> Result<(), String> {
+    set_features_at(paths, exe, Some(true), None, sensitivity)
 }
 
 fn remove_entry(paths: &Paths) -> Result<(), String> {
@@ -216,14 +263,8 @@ fn remove_entry(paths: &Paths) -> Result<(), String> {
     write_settings(paths, Some(&old), &new)
 }
 
-fn disable_at(paths: &Paths) -> Result<(), String> {
-    remove_entry(paths)?;
-    if std::fs::symlink_metadata(paths.config()).is_ok() {
-        let mut config: GuardConfig = files::read_json(&paths.config());
-        config.enabled = false;
-        files::write_json(paths, &paths.config(), &config)?;
-    }
-    Ok(())
+fn disable_at(paths: &Paths, exe: &str) -> Result<(), String> {
+    set_features_at(paths, exe, Some(false), None, None)
 }
 
 fn remove_all_at(paths: &Paths) -> Result<(), String> {
@@ -274,7 +315,27 @@ pub async fn guard_enable(sensitivity: Option<Sensitivity>) -> Result<GuardStatu
 
 #[tauri::command]
 pub async fn guard_disable() -> Result<GuardStatus, String> {
-    super::fs::blocking(|| with_paths(|p| disable_at(p).map(|()| status_at(p)))).await
+    super::fs::blocking(|| {
+        with_paths(|p| {
+            let exe = current_exe().unwrap_or_default();
+            disable_at(p, &exe).map(|()| status_at(p))
+        })
+    })
+    .await
+}
+
+/// Turns the Ship it checklist on or off; installs or removes the shared
+/// hook as needed.
+#[tauri::command]
+pub async fn guard_set_ship_it(enabled: bool) -> Result<GuardStatus, String> {
+    super::fs::blocking(move || {
+        with_paths(|p| {
+            let exe = current_exe().ok_or("could not find the Rokk app path")?;
+            set_features_at(p, &exe, None, Some(enabled), None)?;
+            Ok(status_at(p))
+        })
+    })
+    .await
 }
 
 #[tauri::command]
@@ -303,7 +364,7 @@ pub async fn guard_stats() -> Result<Option<WeekStats>, String> {
             }
             let stats: GuardStats = files::read_json(&p.stats());
             let week = files::week(&stats, files::now());
-            Ok((week.checked > 0).then_some(week))
+            Ok((week.checked > 0 || week.ship_it_runs > 0).then_some(week))
         })
     })
     .await
@@ -349,7 +410,7 @@ mod tests {
         enable_at(&p, EXE, None).unwrap();
         assert_eq!(std::fs::read_to_string(p.settings()).unwrap(), once);
 
-        disable_at(&p).unwrap();
+        disable_at(&p, EXE).unwrap();
         let s = status_at(&p);
         assert!(!s.enabled && s.consented && !s.installed);
         assert_eq!(std::fs::read_to_string(p.settings()).unwrap(), original);
@@ -461,7 +522,7 @@ mod tests {
         assert_eq!(respond(&hook_input("fix it"), &p), Some(hook_json()));
         let specific = hook_input("In src/settings/GeneralSection.tsx, add a toggle for the greeting");
         assert_eq!(respond(&specific, &p), None);
-        disable_at(&p).unwrap();
+        disable_at(&p, EXE).unwrap();
         assert_eq!(respond(&hook_input("fix it"), &p), None);
     }
 
@@ -480,6 +541,153 @@ mod tests {
         let s = status_at(&p);
         assert!(s.installed && !s.outdated);
         assert_eq!(std::fs::read_to_string(p.settings()).unwrap(), text);
+    }
+
+    /// UserPromptSubmit groups whose command contains our marker.
+    fn rokk_entries(text: &str) -> usize {
+        let v: Value = serde_json::from_str(text).unwrap();
+        v["hooks"]["UserPromptSubmit"].as_array().map_or(0, |a| {
+            a.iter()
+                .filter(|g| {
+                    g["hooks"].as_array().is_some_and(|hs| {
+                        hs.iter().any(|h| h["command"].as_str().is_some_and(|c| c.contains(settings_edit::MARKER)))
+                    })
+                })
+                .count()
+        })
+    }
+
+    #[test]
+    fn enable_and_repair_collapse_two_rokk_entries_into_one() {
+        let (_d, p) = home();
+        std::fs::create_dir_all(p.home.join(".claude")).unwrap();
+        let ours = settings_edit::hook_group();
+        let old = json!({ "hooks": [ { "type": "command", "command": "[ -n \"$TERAX_TERMINAL\" ] && \"$HOME/.rokk/hooks/prompt-guard\"; true" } ] });
+        let foreign = json!({ "hooks": [ { "type": "command", "command": "say hi" } ] });
+        let start = json!({
+            "model": "opus",
+            "hooks": {
+                "Stop": [ { "hooks": [ { "type": "command", "command": "say done" } ] } ],
+                "UserPromptSubmit": [ ours, foreign, old ]
+            },
+            "permissions": { "allow": ["Bash(ls)"] }
+        });
+        std::fs::write(p.settings(), serde_json::to_string_pretty(&start).unwrap()).unwrap();
+        assert_eq!(rokk_entries(&std::fs::read_to_string(p.settings()).unwrap()), 2);
+
+        // Enabling (what Repair does for the vague guard) leaves one.
+        enable_at(&p, EXE, None).unwrap();
+        let text = std::fs::read_to_string(p.settings()).unwrap();
+        assert_eq!(rokk_entries(&text), 1);
+        let v: Value = serde_json::from_str(&text).unwrap();
+        assert_eq!(v["model"], "opus");
+        assert_eq!(v["permissions"]["allow"][0], "Bash(ls)");
+        assert_eq!(v["hooks"]["Stop"][0]["hooks"][0]["command"], "say done");
+        let ups = v["hooks"]["UserPromptSubmit"].as_array().unwrap();
+        assert_eq!(ups.len(), 2);
+        assert!(ups.iter().any(|g| g["hooks"][0]["command"] == "say hi"));
+        assert!(entry_current(&text));
+
+        // The Ship it path (Repair when only Ship it is on) collapses too.
+        std::fs::write(p.settings(), serde_json::to_string_pretty(&start).unwrap()).unwrap();
+        disable_at(&p, EXE).unwrap();
+        assert_eq!(rokk_entries(&std::fs::read_to_string(p.settings()).unwrap()), 0);
+        std::fs::write(p.settings(), serde_json::to_string_pretty(&start).unwrap()).unwrap();
+        ship(&p, true);
+        let text = std::fs::read_to_string(p.settings()).unwrap();
+        assert_eq!(rokk_entries(&text), 1);
+        assert!(text.contains("say hi") && text.contains("say done") && text.contains("Bash(ls)"));
+    }
+
+    fn entry_current(text: &str) -> bool {
+        settings_edit::entry_is_current(text).unwrap()
+    }
+
+    fn ship(p: &Paths, on: bool) {
+        set_features_at(p, EXE, None, Some(on), None).unwrap();
+    }
+
+    #[test]
+    fn the_two_switches_are_independent_and_share_one_hook() {
+        let (_d, p) = home();
+        // Ship it alone installs the hook.
+        ship(&p, true);
+        let s = status_at(&p);
+        assert!(s.ship_it_enabled && !s.enabled && s.installed && s.consented);
+        // Turning the vague guard on and off leaves the hook for Ship it.
+        enable_at(&p, EXE, None).unwrap();
+        disable_at(&p, EXE).unwrap();
+        let s = status_at(&p);
+        assert!(s.ship_it_enabled && !s.enabled && s.installed);
+        // And the other way round.
+        enable_at(&p, EXE, None).unwrap();
+        ship(&p, false);
+        let s = status_at(&p);
+        assert!(!s.ship_it_enabled && s.enabled && s.installed);
+        // Both off: the hook goes, the files stay.
+        disable_at(&p, EXE).unwrap();
+        let s = status_at(&p);
+        assert!(!s.installed && !s.enabled && !s.ship_it_enabled);
+        assert!(p.wrapper().exists() && p.config().exists());
+    }
+
+    #[test]
+    fn switching_is_idempotent_with_exactly_one_entry() {
+        let (_d, p) = home();
+        ship(&p, true);
+        let once = std::fs::read_to_string(p.settings()).unwrap();
+        ship(&p, true);
+        enable_at(&p, EXE, None).unwrap();
+        enable_at(&p, EXE, None).unwrap();
+        let after = std::fs::read_to_string(p.settings()).unwrap();
+        assert_eq!(after, once);
+        // Count entries, not marker text: one command holds the marker twice.
+        assert_eq!(rokk_entries(&after), 1);
+        ship(&p, false);
+        ship(&p, false);
+        assert!(status_at(&p).installed, "the vague guard is still on");
+    }
+
+    #[test]
+    fn turning_off_before_setup_writes_nothing() {
+        let (_d, p) = home();
+        ship(&p, false);
+        disable_at(&p, EXE).unwrap();
+        assert!(!p.rokk().exists());
+        assert!(!p.settings().exists());
+    }
+
+    #[test]
+    fn ship_it_gets_the_checklist_only_when_its_switch_is_on() {
+        let (_d, p) = home();
+        enable_at(&p, EXE, None).unwrap();
+        // Vague guard on, Ship it off: "ship it" is skipped, not vague.
+        assert_eq!(respond(&hook_input("ship it"), &p), None);
+        ship(&p, true);
+        // Every time, with no cooldown, even right after a clarification.
+        assert_eq!(respond(&hook_input("fix it"), &p), Some(hook_json()));
+        for _ in 0..3 {
+            assert_eq!(respond(&hook_input("Ship it!"), &p), Some(ship_it_json()));
+        }
+        // Longer prompts go through the normal guard.
+        assert_eq!(respond(&hook_input("ship it to production tomorrow with vercel"), &p), None);
+        // Ship it on, vague guard off.
+        disable_at(&p, EXE).unwrap();
+        assert_eq!(respond(&hook_input("ship it"), &p), Some(ship_it_json()));
+        assert_eq!(respond(&hook_input("fix it"), &p), None);
+        let stats: GuardStats = files::read_json(&p.stats());
+        assert_eq!(files::week(&stats, files::now()).ship_it_runs, 4);
+        let text = std::fs::read_to_string(p.stats()).unwrap();
+        assert!(!text.contains("ship it") && !text.contains("Ship it") && !text.contains("vercel"));
+    }
+
+    #[test]
+    fn ship_it_output_is_the_documented_shape() {
+        let v: Value = serde_json::from_str(&ship_it_json()).unwrap();
+        assert_eq!(v["hookSpecificOutput"]["hookEventName"], "UserPromptSubmit");
+        assert_eq!(v["hookSpecificOutput"]["additionalContext"], magic::SHIP_IT_CONTEXT);
+        assert_eq!(v["systemMessage"], "Rokk: running the ship-it checklist.");
+        assert!(v.get("decision").is_none());
     }
 
     #[test]

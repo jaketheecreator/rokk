@@ -53,7 +53,7 @@ export function StatusBar({
   const panelOpen = useChatStore((s) => s.panelOpen);
 
   return (
-    <footer className="flex h-12 shrink-0 items-center justify-between gap-3 px-[18px] text-[11px] text-[var(--rk-text-2)]">
+    <footer data-rokk-zone="statusbar" className="flex h-12 shrink-0 items-center justify-between gap-3 px-[18px] text-[11px] text-[var(--rk-text-2)]">
       <div className="flex min-w-0 flex-1 items-center gap-2">
         <WorkspaceEnvSelector onSelect={onWorkspaceChange} />
         <CwdBreadcrumb cwd={cwd} filePath={filePath} home={home} onCd={onCd} />

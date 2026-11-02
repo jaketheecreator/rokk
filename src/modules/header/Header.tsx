@@ -24,6 +24,7 @@ import {
   type SearchTarget,
 } from "./SearchInline";
 import { RailToggle } from "@/modules/rokk-rail/RailToggle";
+import { StageToggle } from "@/modules/rokk-stage/StageToggle";
 
 type Props = {
   tabs: Tab[];
@@ -116,6 +117,7 @@ export function Header({
   return (
     <div
       ref={rootRef}
+      data-rokk-zone="header"
       data-tauri-drag-region
       className={`flex h-14 shrink-0 items-center gap-2.5 select-none max-[768px]:h-13 ${
         IS_MAC ? "pr-[18px] pl-20" : "pr-0 pl-[18px]"
@@ -193,6 +195,7 @@ export function Header({
       </div>
 
       <RailToggle />
+      <StageToggle />
       <SearchInline ref={searchRef} target={searchTarget} compact={compact} />
 
       {IS_MAC && (
