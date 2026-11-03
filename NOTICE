@@ -12,3 +12,9 @@ docs/rokk/brand/CherryBombOne-OFL.txt.
 The interface font is Geist Sans by Vercel, in collaboration with
 basement.studio, used under the SIL Open Font License, Version 1.1. The
 license text is in public/fonts/geist/OFL.txt.
+
+Screen recording on macOS uses the screencapturekit crate
+(https://github.com/doom-fish/screencapturekit-rs) and its dependencies
+apple-cf, apple-metal and doom-fish-utils from the same doom-fish project, dual licensed
+under the MIT License or the Apache License, Version 2.0. Rokk uses them under
+the MIT License; the text is in docs/rokk/licenses/screencapturekit-LICENSE-MIT.txt.

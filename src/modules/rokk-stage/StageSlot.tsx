@@ -14,6 +14,10 @@ export function RokkStageSlot({
 }) {
   const { on, announcement } = useStage();
   const prev = useRef({ terminals, zen });
+  // After a reload, pick up a recording that is still running.
+  useEffect(() => {
+    void import("./record/recover").then((m) => m.recoverRecording());
+  }, []);
   useEffect(() => {
     const next = { terminals, zen };
     if (on && shouldExit(prev.current, next)) exitStage();

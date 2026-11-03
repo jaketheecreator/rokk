@@ -49,6 +49,7 @@ export type ShortcutId =
   | "rail.toggle"
   | "buddy.toggle"
   | "stage.toggle"
+  | "record.toggle"
   | "editor.undo"
   | "editor.redo"
   | "editor.save"
@@ -326,6 +327,12 @@ export const SHORTCUTS: Shortcut[] = [
     label: "Toggle stage mode",
     group: "View",
     defaultBindings: [{ [MOD_PROP]: true, alt: true, key: "s" }],
+  },
+  {
+    id: "record.toggle",
+    label: "Start or stop recording (stage mode)",
+    group: "View",
+    defaultBindings: [{ [MOD_PROP]: true, alt: true, key: "r" }],
   },
   {
     id: "explorer.focus",

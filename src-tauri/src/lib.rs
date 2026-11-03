@@ -426,6 +426,15 @@ pub fn run() {
             modules::rokk_guard::guard_stats,
             modules::rokk_meter::meter_find_session,
             modules::rokk_meter::meter_read,
+            modules::rokk_record::record_status,
+            modules::rokk_record::record_request_permission,
+            modules::rokk_record::record_open_settings,
+            modules::rokk_record::record_start,
+            modules::rokk_record::record_stop,
+            modules::rokk_record::record_cancel,
+            modules::rokk_record::record_stop_discard,
+            modules::rokk_record::record_restart,
+            modules::rokk_record::record_delete,
             secrets::secrets_get,
             secrets::secrets_set,
             secrets::secrets_delete,
@@ -472,6 +481,7 @@ pub fn run() {
                 // Servers exit on stdin EOF, but destructors are not guaranteed
                 // on process exit; kill explicitly.
                 tauri::RunEvent::Exit => {
+                    modules::rokk_record::on_exit(app);
                     #[cfg(target_os = "macos")]
                     modules::window_presentation::macos::uninstall();
                     if let Some(state) = app.try_state::<lsp::LspState>() {

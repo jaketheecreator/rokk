@@ -80,6 +80,10 @@ export type StageState = {
   enteredBy: EnteredBy | null;
   /** For the visually hidden live region. */
   announcement: string;
+  /** A recording is running (the Rust recorder is the source of truth). */
+  recording: boolean;
+  /** Bumped by Mod+Alt+R; the lazy record controls act on it. */
+  recordRequest: number;
 };
 
 let state: StageState = {
@@ -88,7 +92,10 @@ let state: StageState = {
   controlsVisible: true,
   enteredBy: null,
   announcement: "",
+  recording: false,
+  recordRequest: 0,
 };
+let stopRecording: (() => Promise<void>) | null = null;
 let returnFocus: HTMLElement | null = null;
 let warned = false;
 const listeners = new Set<() => void>();
@@ -134,6 +141,9 @@ export function exitStage(): void {
   if (!state.on) return;
   const by = state.enteredBy;
   root()?.removeAttribute("data-rokk-stage");
+  // Never leave the page thinking it records; the menu bar item stays the
+  // way to stop a capture that is still running.
+  setRecording(false);
   set({ on: false, enteredBy: null, announcement: "Stage mode off" });
   nudgeResize();
   const target = focusTarget(by, returnFocus);
@@ -151,10 +161,39 @@ export function focusTarget(by: EnteredBy | null, previous: HTMLElement | null):
   return previous?.isConnected ? previous : null;
 }
 
-/** The one toggle path, used by the shortcut and the button. */
+/** The one toggle path, used by the shortcut and the button. Leaving while
+ * recording stops (and saves) the recording first. */
 export function toggleStage(by: EnteredBy = "keyboard"): void {
+  if (state.on && state.recording && stopRecording) {
+    void stopRecording().finally(exitStage);
+    return;
+  }
   if (state.on) exitStage();
   else enter(by);
+}
+
+/** Mod+Alt+R: only does something while stage mode is on. */
+export function requestRecordToggle(): boolean {
+  if (!state.on) return false;
+  set({ recordRequest: state.recordRequest + 1 });
+  return true;
+}
+
+/** Mirrors the recorder state on the document root. */
+export function setRecording(on: boolean): void {
+  if (on) root()?.setAttribute("data-rokk-recording", "on");
+  else root()?.removeAttribute("data-rokk-recording");
+  if (on !== state.recording) set({ recording: on });
+}
+
+/** The record controls register how to stop, for leaving stage mode. */
+export function registerRecordingStop(fn: (() => Promise<void>) | null): void {
+  stopRecording = fn;
+}
+
+/** Enters stage mode without moving focus, for a recording found after a reload. */
+export function enterForRecovery(): void {
+  if (!state.on) enter("keyboard");
 }
 
 export function setWallpaper(id: WallpaperId): void {

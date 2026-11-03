@@ -3,7 +3,7 @@ import { RokkWordmark } from "@/components/brand/RokkWordmark";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { IS_MAC } from "@/lib/platform";
 import { cn } from "@/lib/utils";
-import { useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import {
   createAutoHide,
@@ -16,6 +16,8 @@ import {
   wallpaperById,
   wallpaperUrl,
 } from "./lib/stage";
+
+const RecordControls = IS_MAC ? lazy(() => import("./record/RecordControls")) : null;
 
 export const STAGE_WARNING = "Stage mode shows your terminal. Check it for secrets before you share your screen.";
 
@@ -71,8 +73,9 @@ export function StageLayer() {
         >
           Exit stage
         </button>
+        <div className="rk-stage-glass rk-stage-bottom">
         <fieldset
-          className="rk-stage-glass rk-stage-picker"
+          className="rk-stage-picker"
           onMouseEnter={() => hide.current?.hoverIn()}
           onMouseLeave={() => hide.current?.hoverOut()}
         >
@@ -99,6 +102,12 @@ export function StageLayer() {
             </Tooltip>
           ))}
         </fieldset>
+        {RecordControls ? (
+          <Suspense fallback={null}>
+            <RecordControls onHover={(inside) => (inside ? hide.current?.hoverIn() : hide.current?.hoverOut())} />
+          </Suspense>
+        ) : null}
+        </div>
       </section>
     </>
   );

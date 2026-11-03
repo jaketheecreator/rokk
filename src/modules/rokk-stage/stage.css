@@ -109,17 +109,97 @@ html[data-rokk-stage="on"] #workspace > div > .terax-pane {
   font-weight: 500;
   outline: none;
 }
-.rk-stage-picker {
+.rk-stage-bottom {
   position: absolute;
   left: 50%;
   bottom: 24px;
   transform: translateX(-50%);
   display: flex;
-  gap: 8px;
-  margin: 0;
+  align-items: center;
+  gap: 10px;
   padding: 8px;
   border-radius: 14px;
+}
+
+.rk-stage-picker {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
   min-inline-size: 0;
+}
+
+.rk-stage-record {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #f4f2ee;
+  font-size: 13px;
+  font-weight: 500;
+  outline: none;
+}
+.rk-stage-record:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.18);
+}
+.rk-stage-record:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.rk-stage-record:focus-visible {
+  box-shadow: 0 0 0 2px #f4f2ee;
+}
+.rk-stage-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e5484d;
+}
+
+/* While recording only the wallpaper, the frame and the mark are visible. */
+html[data-rokk-recording="on"] .rk-stage-controls {
+  display: none !important;
+}
+
+.rk-stage-countdown {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  background: rgba(10, 10, 9, 0.55);
+}
+.rk-stage-count {
+  font-family: "Cherry Bomb One", var(--font-sans, system-ui), sans-serif;
+  font-size: 140px;
+  line-height: 1;
+  color: #f4f2ee;
+  animation: rk-stage-count-in 300ms ease-out;
+}
+@keyframes rk-stage-count-in {
+  from {
+    transform: scale(0.85);
+    opacity: 0.4;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rk-stage-count {
+    animation: none;
+  }
+}
+.rk-stage-cancel {
+  height: 32px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .rk-stage-thumb {
@@ -145,4 +225,39 @@ html[data-rokk-stage="on"] #workspace > div > .terax-pane {
 .rk-stage-exit:focus-visible,
 .rk-stage-thumb:has(input:focus-visible) {
   box-shadow: 0 0 0 2px #f4f2ee, 0 0 0 4px rgba(20, 20, 19, 0.72);
+}
+
+/* The result card after a recording, above the bottom pill. Not shown while
+ * recording, so it is never in a video. */
+.rk-stage-result {
+  position: fixed;
+  z-index: 44;
+  left: 50%;
+  bottom: 84px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 320px;
+  max-width: min(560px, 90vw);
+  padding: 14px 16px;
+  border-radius: 14px;
+}
+.rk-stage-result-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+.rk-stage-result-detail {
+  font-size: 12px;
+  opacity: 0.8;
+  overflow-wrap: anywhere;
+}
+.rk-stage-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+html[data-rokk-recording="on"] .rk-stage-result {
+  display: none !important;
 }

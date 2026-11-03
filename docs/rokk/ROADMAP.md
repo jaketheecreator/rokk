@@ -59,7 +59,9 @@ Rokk exists to help beginners and vibe coders waste fewer AI credits. These feat
 | Feature | Status | Notes |
 | --- | --- | --- |
 | Stage mode, Phase 1 | Built | Stage view with wallpaper, frame, mark, Exit pill and picker (see STAGE.md). `Mod+Alt+S` or the top bar play button. |
-| Stage mode, Phases 2 to 4 | Planned | Recording, window shapes, share panel (see STAGE_MAP.md). |
+| Stage mode, Phase 2 | Built, pending tests in a packaged build | Record the Rokk window to MP4 on macOS 15+ (see RECORD.md). |
+| Stage mode, Phase 2: recording controller | Built, pending the manual checklist | A separate window with the timer, Stop, Discard and Restart at the bottom of the stage, not in the video (see RECORD.md). |
+| Stage mode, Phases 3 and 4 | Planned | Window shapes, share panel (see STAGE_MAP.md). |
 | Recording | Planned | Record button in the top bar, a floating pill and a shortcut. The user picks the capture each time: preview only, preview plus activity, whole screen, or a chosen window. Recording the preview cannot come from app code because it is a cross-origin iframe, so it needs screen capture. |
 | Live preview while recording | Planned | Click through the running project while recording. Terminal hidden by default. |
 | Mobile app preview | Planned | Realistic iPhone-style frame we draw ourselves. Needs a simulator or emulator window capture; macOS first. Check Apple's device image rules before using any Apple artwork. |

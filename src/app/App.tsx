@@ -137,7 +137,7 @@ import { BuddyGate, toggleBuddy } from "@/modules/rokk-buddy/BuddyToggle";
 import { RokkRailSlot } from "@/modules/rokk-rail/RailSlot";
 import { toggleRail } from "@/modules/rokk-rail/lib/railState";
 import { RokkStageSlot } from "@/modules/rokk-stage/StageSlot";
-import { toggleStage } from "@/modules/rokk-stage/lib/stage";
+import { requestRecordToggle, toggleStage } from "@/modules/rokk-stage/lib/stage";
 import { WorkspaceSurface } from "./components/WorkspaceSurface";
 import { useAppCloseGuard } from "./hooks/useAppCloseGuard";
 import {
@@ -961,6 +961,7 @@ export default function App() {
       "rail.toggle": toggleRail,
       "buddy.toggle": toggleBuddy,
       "stage.toggle": () => toggleStage("keyboard"),
+      "record.toggle": requestRecordToggle,
       "explorer.focus": toggleExplorerFocus,
       "explorer.toggleHidden": toggleHiddenFiles,
       "view.zoomIn": zoomIn,

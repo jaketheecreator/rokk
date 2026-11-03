@@ -98,6 +98,10 @@ objc2-app-kit = { version = "0.3", default-features = false, features = ["std", 
 objc2-foundation = { version = "0.3", features = ["NSArray", "NSURL", "NSString", "NSUserDefaults", "NSValue"] }
 fsevent-sys = "4.1"
 window-vibrancy = "0.6"
+# Rokk recording (docs/rokk/RECORD.md): window capture to MP4, macOS 15+,
+# and the menu bar recording indicator.
+screencapturekit = { version = "11.1.1", features = ["macos_15_2"] }
+tauri = { version = "2", features = ["protocol-asset", "macos-private-api", "tray-icon"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 keyring = { version = "3.6", default-features = false, features = [

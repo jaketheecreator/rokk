@@ -4,6 +4,15 @@ Rokk is based on Terax (Apache License 2.0). This file lists every file Rokk has
 
 ## Added
 
+- **Sidebar switch fit (2026-11-03):** the Files, Changes and Git switch uses a container query. Below 268px only the active segment shows its label, and the count badges moved to the icon corner, with the count also in the accessible name. Files: `src/modules/sidebar/SidebarRail.tsx` (upstream file, markup and classes only), new `src/modules/sidebar/railLabels.ts` and `railLabels.test.ts`, `docs/rokk/DESIGN_TOKENS.md`.
+
+- **Recording controller (2026-11-02):** a separate window `rokk-recorder` with the timer, Stop, Discard and Restart, at the bottom center of the Rokk window while recording, created lazily at the first recording.
+  - New files: `recorder.html`, `src/modules/rokk-recorder/{recorder.ts,main.ts,recorder.css,recorder.test.ts}`, `src-tauri/src/modules/rokk_record/controller.rs` and `src-tauri/capabilities/recorder.json`.
+  - New commands `record_stop_discard` and `record_restart`, a new stop reason `restart`, and the event `rokk-record-restart`, which runs the main window's "Record again" flow.
+  - Upstream files: `vite.config.ts` (one input line) and `src-tauri/src/lib.rs` (two command registrations). These need care when merging upstream.
+
+- **Recording, system stops (2026-11-02):** `rokk_record` now registers the ScreenCaptureKit stream delegate (stop with error, inactive, active, video effects) and the recording output `on_start` and `on_finish` callbacks, besides `on_fail`. The callbacks set flags, and the one-second tick routes them into the single stop function with the reason `system` or `error`. Stops carry a reason (`tray`, `shortcut`, `discard`, `system`, `cap`, `disk`, `window_closed`, `app_exit`, `error`). The reason is in the terminal event and in `record_status` (`lastReason`, `lastErrorCode`). A kept file must start with an MP4 `ftyp` box. There are diagnostics log lines. The crate feature changed from `macos_15_0` to `macos_15_2` (same crate, no new dependency) so `streamDidBecomeInactive` is compiled; it is checked at run time. Error result cards show the reason in their smaller line. Files: `src-tauri/src/modules/rokk_record/{logic,mod,mac}.rs`, `src-tauri/Cargo.toml`, `src/modules/rokk-stage/record/{record.ts,RecordControls.tsx,record.test.ts}`, `docs/rokk/RECORD.md`.
+
 - `NOTICE`: attribution to Terax and the Cherry Bomb One (SIL OFL 1.1) credit for the wordmark.
 - `docs/rokk/ARCHITECTURE_MAP.md`: read-only survey of the codebase for Rokk.
 - `docs/rokk/CHANGES.md`: this file.
@@ -334,6 +343,49 @@ Modified (upstream files):
 - `src/modules/header/Header.tsx`: the `StageToggle` import, `data-rokk-zone="header"` on the root, and `<StageToggle />` after `<RailToggle />`.
 - `src/modules/statusbar/StatusBar.tsx`: `data-rokk-zone="statusbar"` on the footer.
 - `TabBar.tsx` and `SidebarRail.tsx`: unchanged. They sit inside the header and `#sidebar`, which already have stable selectors.
+
+## Stage recording (Stage mode, Phase 2)
+
+Added:
+
+- `src-tauri/src/modules/rokk_record/`:
+  - `logic.rs`: state machine, file names, path rules, limits, error codes; with tests.
+  - `mac.rs`: permission, window id, ScreenCaptureKit capture, menu bar indicator.
+  - `mod.rs`: commands `record_status`, `record_request_permission`, `record_open_settings`, `record_start`, `record_stop` and `record_cancel`, the `rokk-record-state` event, and exit handling.
+- `src/modules/rokk-stage/record/`: `record.ts` (pure, with tests), `ipc.ts`, `recover.ts`, and `RecordControls.tsx` (its own lazy chunk).
+- `docs/rokk/RECORD.md`, `docs/rokk/licenses/screencapturekit-LICENSE-MIT.txt`.
+
+Modified:
+
+- `src-tauri/Cargo.toml` (upstream): for macOS only, `screencapturekit` 11.1.1 (feature `macos_15_0`) and Tauri's `tray-icon` feature.
+- `src-tauri/Info.plist` (upstream): `NSScreenCaptureUsageDescription`.
+- `src-tauri/src/modules/mod.rs` and `src-tauri/src/lib.rs` (upstream): the module, six command names, and `on_exit` in `RunEvent::Exit`.
+- `src/app/App.tsx` (upstream): the `"record.toggle"` handler and its import. `src/modules/shortcuts/shortcuts.ts` (upstream): `record.toggle` (`Mod+Alt+R`).
+- `src/modules/rokk-stage/`: store fields for recording, the Record pill in the bottom bar, recording CSS, recovery after a reload.
+- `NOTICE`: the screencapturekit credit.
+
+## Recording build fix (Swift compatibility libraries)
+
+- `src-tauri/build.rs` (upstream): `link_swift_compatibility()` adds the active toolchain's `usr/lib/swift/macosx` folder (found with `xcrun --find swiftc`) as a link search path on macOS targets. Without it, linking failed when only the Command Line Tools are selected. Linux and Windows builds are unchanged, and the deployment target is unchanged.
+- Correction: an rpath change was needed after all. `build.rs` now also adds `-Wl,-rpath,/usr/lib/swift`, because the crates' own rpath link arguments do not reach Rokk's binaries. Without it the app and the test binary stopped at launch with "Library not loaded: @rpath/libswift_Concurrency.dylib". It also adds the toolchain's `usr/lib/swift/macosx` as a second rpath, only when `libswift_Concurrency.dylib` is there.
+
+## Stage recording: ending a recording reliably
+
+- **Cause:** stopping from the menu bar left the stage controls hidden. A stop whose file never finished saving emitted "stopping" but never "idle", and the page treated "stopping" as still recording. A `-partial.mp4` was left behind in `~/Movies/Rokk`.
+- `rokk_record/logic.rs`:
+  - `StopReason`, `Finish` and `stop_outcome`, so every way out has one outcome.
+  - A `Timeout` step out of Stopping, and the 10 second `FINALIZE_TIMEOUT_SECS`.
+  - The error codes `finalize_timeout` and `not_deletable`, and `check_delete`.
+  - Tests for every stop path and for delete safety.
+- `rokk_record/mod.rs`:
+  - One `stop` for every path, ending in a single terminal event with `finished`, `error`, `outcome` and `size`.
+  - The finalize watchdog.
+  - The new command `record_delete`.
+- `rokk_record/mac.rs`: "Stop and discard" in the menu bar menu; the menu bar item is removed on the main thread.
+- `src-tauri/src/lib.rs` (upstream): one command name.
+- `src/modules/rokk-stage/record/`: `eventEffect`, `resultFor`, `createStuckWatch` and the result card with Show in Finder, Record again, Delete recording and Done, with tests.
+- `lib/stage.ts`: leaving stage mode clears the recording attribute.
+- `stage.css`: the card styles.
 
 ## Visible strings left as Terax on purpose
 

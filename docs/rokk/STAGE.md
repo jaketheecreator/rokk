@@ -1,5 +1,7 @@
 # Stage mode (Phase 1)
 
+Recording (Phase 2) adds a Record button to the bottom pill and `Mod+Alt+R`; see RECORD.md. While recording, a separate controller window at the bottom center of the stage shows the timer, Stop, Discard and Restart; it is not part of the video. When a recording ends, the controls come back with a result card above the bottom pill. Leaving stage mode always clears the recording attribute.
+
 A presentation view of the Rokk window. The current tab (a terminal, or the live preview) is shown in a centered rounded frame over a wallpaper, with a small "Made with Rokk" mark. Nothing is recorded in this phase.
 
 ## Entering and leaving
@@ -37,5 +39,5 @@ The first time stage mode is entered after each launch, a toast says: "Stage mod
 ## Known limits
 
 - The native macOS traffic lights stay visible; hiding them needs Rust (Phase 3). The Exit pill sits to their right.
-- No recording yet (Phase 2), and no window shapes yet (Phase 3).
+- Recording is Phase 2 (see RECORD.md). No window shapes yet (Phase 3).
 - At an app zoom other than 100 percent, the frame's viewport units are scaled by the zoom.

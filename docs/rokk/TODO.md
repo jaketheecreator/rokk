@@ -101,3 +101,26 @@ Renaming the compiled program breaks the places below, so migrate them together 
   - A phone frame drawn by us.
 - [ ] **Phase 4, share panel:** open the folder, copy a caption, open the upload page.
 - [ ] **Merging upstream:** `src/app/App.tsx`, `src/modules/header/Header.tsx`, `src/modules/statusbar/StatusBar.tsx` and `src/modules/shortcuts/shortcuts.ts` are touched by Stage mode. `TabBar.tsx` and `SidebarRail.tsx` are not touched, but stage.css depends on their place inside the header and `#sidebar`. All are upstream files that need care when merging upstream.
+
+## Stage recording
+
+- [ ] **macOS 13 and 14 fallback** with `screencapture -v -x -l <windowid>`. Untested: whether `-v` works with `-l`, and whether SIGINT finalizes the file.
+- [ ] **Hide the traffic lights** while recording (Phase 3).
+- [ ] **A cursor toggle.**
+- [ ] **Optional system audio.**
+- [ ] **A recording-in-progress warning on quit.** Today quitting finalizes the file without asking.
+- [ ] **Record from a packaged, signed build** to test the permission flow for real.
+- [ ] **A Windows and Linux story.**
+- [ ] **Countdown digits in Cherry Bomb One:** needs the font file bundled; today they use Geist.
+- [ ] **Merging upstream:** `src-tauri/src/lib.rs`, `src-tauri/src/modules/mod.rs`, `src-tauri/Cargo.toml` and `src-tauri/Info.plist` are upstream files that need care when merging upstream. `tauri.conf.json` was not touched.
+- [ ] **CI:** `cargo check --locked` needs Cargo.lock updated with the new crates; the next local build does that.
+- [ ] **CI:** confirm the release macOS runners link the recording crates. Swift's static compatibility libraries must be in the selected toolchain, which is true for both Xcode and the Command Line Tools with the `build.rs` search path.
+- [ ] **Contributor build note:** add to the README or docs/rokk that macOS builds need Xcode or the Command Line Tools with Swift 5.9 or later. This Mac uses Command Line Tools 26.6 with Swift 6.3.3.
+- [ ] `src-tauri/build.rs` is an upstream file that needs care when merging upstream.
+- [ ] **Verify launch on macOS 13 and 14** (recording disabled, app must start) and **on a clean packaged build** on a Mac without developer tools, to confirm the Swift runtime is found through `/usr/lib/swift`. If launch fails there, options: weak-link the Swift and ScreenCaptureKit pieces, put recording behind a Cargo feature `record` that is off by default, or raise the minimum macOS.
+- [x] **Recording controller window:** built (see RECORD.md); pending the manual checklist.
+- [ ] **Verify the recording controller on macOS 15 and 26**, and with two displays.
+- [ ] **A hotkey while the controller has focus** (for example Escape to stop).
+- [ ] **Upstream files touched by the controller:** `vite.config.ts` (one entry line), `src-tauri/src/lib.rs` (two command lines) and the new `src-tauri/capabilities/recorder.json` need care when merging upstream. `tauri.conf.json` was not touched.
+- [ ] **Why the finalize hung:** a `-partial.mp4` was left on 2026-11-02 when a stop never finished saving. The watchdog now covers it; find the root cause (ScreenCaptureKit's finalize callback, or the removal of the menu bar item off the main thread) with a real run.
+- [ ] **What the red pill is:** confirm from a real run, with the new log lines, which callback the red control at the top left of the captured window sends (`userStopped` `-3817` or `systemStoppedStream` `-3821`), and whether the menu bar item was visible.

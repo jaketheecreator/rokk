@@ -1,0 +1,89 @@
+/* The recording controller page. Same tokens as the stage glass controls, as
+ * a solid color: the window is transparent, and a backdrop blur there would
+ * not blur what is behind the window anyway. */
+@font-face {
+  font-family: "Geist";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/geist/Geist-Medium.woff2") format("woff2");
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+}
+
+.rk-rec {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 56px;
+  padding: 0 10px 0 18px;
+  border-radius: 999px;
+  background: rgb(20, 20, 19);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f4f2ee;
+  font: 500 13px/1 "Geist", system-ui, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.rk-rec-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ff453a;
+}
+.rk-rec-dot[data-on="false"] {
+  opacity: 0.35;
+}
+
+.rk-rec-time {
+  min-width: 44px;
+  margin-right: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.rk-rec-btn {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.rk-rec-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.rk-rec-primary {
+  background: #f4f2ee;
+  border-color: #f4f2ee;
+  color: #141413;
+}
+.rk-rec-primary:hover {
+  background: #ffffff;
+}
+.rk-rec-btn:focus-visible {
+  outline: 2px solid #f4f2ee;
+  outline-offset: 2px;
+}
+.rk-rec-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.rk-rec-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
