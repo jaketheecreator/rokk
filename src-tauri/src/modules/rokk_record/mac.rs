@@ -137,6 +137,8 @@ pub fn remove_indicator(app: &AppHandle) {
 /// ScreenCaptureKit queue it runs on.
 #[derive(Default)]
 pub struct Flags {
+    /// When the recording output reported that it started: the video's time 0.
+    started: std::sync::Mutex<Option<std::time::Instant>>,
     stream_stopped: AtomicBool,
     inactive: AtomicBool,
     output_finished: AtomicBool,
@@ -144,6 +146,10 @@ pub struct Flags {
 }
 
 impl Flags {
+    pub fn started(&self) -> Option<std::time::Instant> {
+        *self.started.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
     pub fn read(&self) -> Signals {
         Signals {
             stream_stopped: self.stream_stopped.load(Ordering::Acquire),
@@ -193,9 +199,12 @@ fn stream_callbacks(flags: &Arc<Flags>) -> StreamCallbacks {
 }
 
 fn recording_callbacks(flags: &Arc<Flags>) -> RecordingCallbacks {
-    let (failed, finished) = (flags.clone(), flags.clone());
+    let (failed, finished, started) = (flags.clone(), flags.clone(), flags.clone());
     RecordingCallbacks::new()
-        .on_start(|| log::info!("[rokk_record] callback recording_did_start"))
+        .on_start(move || {
+            *started.started.lock().unwrap_or_else(|e| e.into_inner()) = Some(std::time::Instant::now());
+            log::info!("[rokk_record] callback recording_did_start");
+        })
         // The message is not logged; only that it failed.
         .on_fail(move |_| {
             log::info!("[rokk_record] callback recording_did_fail");

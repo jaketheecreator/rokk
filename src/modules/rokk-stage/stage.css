@@ -26,26 +26,365 @@ html[data-rokk-stage="on"] .rk-stage-wallpaper {
 }
 
 /* The frame: the workspace content, centered over the wallpaper. Its panel
- * keeps its place in the layout; only the content moves. */
+ * keeps its place in the layout; only the content moves.
+ *
+ * The DOM, from react-resizable-panels: #workspace (the panel), its inner
+ * <div> (the frame below, with an inline overflow style), the app's wrapper
+ * <div class="h-full min-h-0 pl-0.5 pr-2">, then .terax-pane. So the pane is
+ * `#workspace > div > div > .terax-pane`, not `#workspace > div > .terax-pane`.
+ * Every rule here carries #workspace (an id), so it beats the Tailwind
+ * utilities (one class, in a layer) and `:root .terax-pane`. */
 html[data-rokk-stage="on"] #workspace > div {
   position: fixed;
   z-index: 41;
   /* Centered without a transform, so fixed descendants still use the window. */
   inset: 0;
-  margin: auto;
-  width: min(1000px, 82vw);
-  height: min(620px, calc(100vh - 160px));
+  /* Sized by the frame handles (frame/FrameSize.tsx); the fallbacks are the
+   * default rule. Vertically centered in the area above the pill. */
+  margin: var(--rk-stage-mt, auto) auto auto;
+  width: var(--rk-stage-w, min(1000px, 82vw));
+  height: var(--rk-stage-h, min(620px, calc(100vh - 160px)));
   padding: 0;
   border-radius: 16px;
-  overflow: hidden;
+  /* !important: the panel library sets `overflow: auto` inline here; the
+   * frame must clip its content to the radius without scrollbars. */
+  overflow: hidden !important;
   background: var(--rk-canvas);
-  border: 1px solid var(--rk-edge);
+  /* One surface: no hairline (the pane inside has none either). */
+  border: 0;
   /* The only shadow in the app: the frame sits over a wallpaper. */
   box-shadow: 0 30px 70px rgba(0, 0, 0, 0.28);
 }
 
-html[data-rokk-stage="on"] #workspace > div > .terax-pane {
+/* The pane inside the frame: no second ring and the frame's own surface. */
+html[data-rokk-stage="on"] #workspace > div > div > .terax-pane {
+  border: 0;
   border-radius: 0;
+  background: var(--rk-canvas);
+}
+
+/* A preview in the frame shows only the page: no address bar or notices. */
+html[data-rokk-stage="on"] [data-rokk-preview] > :not(:last-child) {
+  display: none;
+}
+
+/* A preview fills the frame edge to edge: no surface, padding or input bar
+ * around it; the frame's 16px radius clips it and only the shadow stays.
+ * The terminal keeps its text padding (the wrapper's pl-0.5 pr-2). */
+html[data-rokk-stage="on"][data-rokk-show="preview"] #workspace > div,
+html[data-rokk-stage="on"][data-rokk-show="preview"] #workspace > div > div > .terax-pane,
+html[data-rokk-stage="on"][data-rokk-show="preview"] [data-rokk-preview] {
+  background: transparent;
+}
+html[data-rokk-stage="on"][data-rokk-show="preview"] #workspace > div > div {
+  padding: 0;
+}
+html[data-rokk-stage="on"][data-rokk-show="preview"] #workspace > div > div > .terax-pane > :not(:first-child) {
+  display: none;
+}
+
+/* Frame resize handles: 14px hit areas on the frame's edges and corners,
+ * in the control layer. */
+.rk-stage-handle {
+  position: fixed;
+  width: 14px;
+  height: 14px;
+  left: calc(50% - var(--rk-stage-w) / 2 - 7px);
+  top: calc(var(--rk-stage-mt) - 7px);
+  padding: 0;
+  border: 0;
+  background: none;
+  touch-action: none;
+}
+.rk-stage-handle:focus-visible {
+  outline: 2px solid #f4f2ee;
+  outline-offset: -4px;
+  border-radius: 6px;
+}
+.rk-stage-handle[data-x="0"] {
+  left: calc(50% - var(--rk-stage-w) / 2 + 7px);
+  width: calc(var(--rk-stage-w) - 14px);
+}
+.rk-stage-handle[data-x="1"] {
+  left: calc(50% + var(--rk-stage-w) / 2 - 7px);
+}
+.rk-stage-handle[data-y="0"] {
+  top: calc(var(--rk-stage-mt) + 7px);
+  height: calc(var(--rk-stage-h) - 14px);
+}
+.rk-stage-handle[data-y="1"] {
+  top: calc(var(--rk-stage-mt) + var(--rk-stage-h) - 7px);
+}
+.rk-stage-handle[data-x="0"] { cursor: ns-resize; }
+.rk-stage-handle[data-y="0"] { cursor: ew-resize; }
+.rk-stage-handle[data-x="-1"][data-y="-1"],
+.rk-stage-handle[data-x="1"][data-y="1"] { cursor: nwse-resize; }
+.rk-stage-handle[data-x="1"][data-y="-1"],
+.rk-stage-handle[data-x="-1"][data-y="1"] { cursor: nesw-resize; }
+
+/* The control bar: Show, Wallpaper, Record, in one glass pill. */
+.rk-stage-show,
+.rk-stage-wp {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.rk-stage-seg {
+  display: flex;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-inline-size: 0;
+}
+.rk-stage-seg > button,
+.rk-stage-iconbtn,
+.rk-stage-textbtn,
+.rk-stage-chips > button,
+.rk-stage-primary,
+.rk-stage-wp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 18px;
+  background: transparent;
+  color: inherit;
+  font: 500 13px/1 "Geist", var(--font-sans, system-ui), sans-serif;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+.rk-stage-seg > button[aria-pressed="true"] {
+  background: rgba(255, 255, 255, 0.16);
+  font-weight: 600;
+}
+.rk-stage-iconbtn {
+  width: 36px;
+  padding: 0;
+}
+.rk-stage-wp-btn {
+  padding: 0 10px 0 5px;
+}
+.rk-stage-wp-btn > span,
+.rk-stage-wp-grid span {
+  display: block;
+  background-position: center;
+  background-size: cover;
+}
+.rk-stage-wp-btn > span {
+  width: 40px;
+  height: 26px;
+  border-radius: 6px;
+}
+.rk-seg-ico {
+  display: none;
+}
+.rk-stage-seg > button:hover,
+.rk-stage-iconbtn:hover,
+.rk-stage-textbtn:hover,
+.rk-stage-chips > button:hover,
+.rk-stage-wp-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.rk-stage-seg > button:focus-visible,
+.rk-stage-iconbtn:focus-visible,
+.rk-stage-textbtn:focus-visible,
+.rk-stage-chips > button:focus-visible,
+.rk-stage-primary:focus-visible,
+.rk-stage-wp-btn:focus-visible,
+.rk-stage-wp-grid button:focus-visible,
+.rk-stage-port input:focus-visible {
+  outline: 2px solid #f4f2ee;
+  outline-offset: 2px;
+}
+.rk-stage-div {
+  width: 1px;
+  height: 24px;
+  flex: none;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Popovers: 10px above the pill, centered on their group, shifted to stay
+ * 16px inside the window (--rk-pop-dx, from Popover.tsx). */
+.rk-stage-pop {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 18px);
+  translate: calc(-50% + var(--rk-pop-dx, 0px)) 0;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(20, 20, 19, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  animation: rk-stage-pop-in 120ms ease;
+}
+@keyframes rk-stage-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+.rk-stage-wp-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 112px);
+  gap: 10px;
+}
+.rk-stage-wp-grid button {
+  display: grid;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: inherit;
+  font: 500 12px/1.2 "Geist", var(--font-sans, system-ui), sans-serif;
+  text-align: center;
+  cursor: pointer;
+}
+.rk-stage-wp-grid span {
+  width: 112px;
+  height: 72px;
+  border-radius: 10px;
+}
+.rk-stage-wp-grid [aria-checked="true"] span {
+  box-shadow: 0 0 0 2px #f4f2ee;
+}
+
+/* Narrow windows: the controls layer spans the window, so its width is the
+ * window's. Under 640px only the active Show segment keeps its label. */
+.rk-stage-controls {
+  container-type: inline-size;
+}
+@container (width < 640px) {
+  .rk-stage-seg > button[aria-pressed="false"] {
+    width: 36px;
+    padding: 0;
+  }
+  .rk-stage-seg > button[aria-pressed="false"] .rk-seg-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .rk-stage-seg > button[aria-pressed="false"] .rk-seg-ico {
+    display: block;
+  }
+}
+
+.rk-stage-hint {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 18px);
+  width: 340px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font: 500 12.5px/1.45 "Geist", var(--font-sans, system-ui), sans-serif;
+  white-space: normal;
+}
+.rk-stage-popover {
+  display: grid;
+  gap: 10px;
+  width: 280px;
+  font: 500 12.5px/1.45 "Geist", var(--font-sans, system-ui), sans-serif;
+}
+.rk-stage-popover-label {
+  font-weight: 600;
+}
+.rk-stage-port {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.rk-stage-port > span {
+  color: rgba(244, 242, 238, 0.7);
+}
+.rk-stage-port input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+.rk-stage-popover-error {
+  margin: 0;
+  color: #ffb4a8;
+}
+.rk-stage-popover-help {
+  margin: 0;
+  color: rgba(244, 242, 238, 0.7);
+}
+.rk-stage-recent {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+.rk-stage-recent > span {
+  flex: 1;
+  font-weight: 600;
+}
+.rk-stage-recent > button:not(.rk-stage-textbtn) {
+  flex-basis: 100%;
+  overflow: hidden;
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rk-stage-recent > button:not(.rk-stage-textbtn):hover,
+.rk-stage-recent > button:not(.rk-stage-textbtn):focus-visible {
+  background: rgba(255, 255, 255, 0.1);
+}
+.rk-stage-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.rk-stage-chips > button {
+  background: rgba(255, 255, 255, 0.08);
+  font-variant-numeric: tabular-nums;
+}
+.rk-stage-chips > button[aria-pressed="true"] {
+  background: rgba(255, 255, 255, 0.2);
+}
+.rk-stage-popover-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.rk-stage-primary {
+  background: #f4f2ee;
+  color: #141413;
+  font-weight: 600;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rk-stage-seg > button,
+  .rk-stage-iconbtn,
+  .rk-stage-textbtn,
+  .rk-stage-chips > button,
+  .rk-stage-primary,
+  .rk-stage-wp-btn {
+    transition: none;
+  }
+  .rk-stage-pop {
+    animation: none;
+  }
 }
 
 .rk-stage-mark {
@@ -116,18 +455,13 @@ html[data-rokk-stage="on"] #workspace > div > .terax-pane {
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px;
-  border-radius: 14px;
-}
-
-.rk-stage-picker {
-  display: flex;
   gap: 8px;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  min-inline-size: 0;
+  box-sizing: border-box;
+  height: 52px;
+  max-width: calc(100vw - 32px);
+  padding: 8px;
+  border-radius: 26px;
+  white-space: nowrap;
 }
 
 .rk-stage-record {
@@ -152,6 +486,21 @@ html[data-rokk-stage="on"] #workspace > div > .terax-pane {
 }
 .rk-stage-record:focus-visible {
   box-shadow: 0 0 0 2px #f4f2ee;
+}
+/* Record in the pill: the primary light pill at the right end. */
+.rk-stage-bottom .rk-stage-record {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 18px;
+  background: #f4f2ee;
+  color: #141413;
+  white-space: nowrap;
+}
+.rk-stage-bottom .rk-stage-record:hover:not(:disabled) {
+  background: #ffffff;
+}
+.rk-stage-bottom .rk-stage-record:focus-visible {
+  box-shadow: 0 0 0 2px #141413, 0 0 0 4px #f4f2ee;
 }
 .rk-stage-dot {
   width: 8px;
@@ -202,28 +551,7 @@ html[data-rokk-recording="on"] .rk-stage-controls {
   font-weight: 500;
 }
 
-.rk-stage-thumb {
-  position: relative;
-  display: block;
-  width: 40px;
-  height: 28px;
-  border-radius: 7px;
-  cursor: pointer;
-}
-.rk-stage-thumb > span {
-  display: block;
-  width: 100%;
-  height: 100%;
-  border-radius: 7px;
-  background-position: center;
-  background-size: cover;
-}
-.rk-stage-thumb[data-selected="true"] {
-  box-shadow: 0 0 0 2px #f4f2ee;
-}
-
-.rk-stage-exit:focus-visible,
-.rk-stage-thumb:has(input:focus-visible) {
+.rk-stage-exit:focus-visible {
   box-shadow: 0 0 0 2px #f4f2ee, 0 0 0 4px rgba(20, 20, 19, 0.72);
 }
 

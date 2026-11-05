@@ -4,6 +4,104 @@ Rokk is based on Terax (Apache License 2.0). This file lists every file Rokk has
 
 ## Added
 
+- **Preview address (2026-11-05):** the stage Preview now accepts a port, a localhost address or a full http or https address (`show/address.ts`, pure, with tests), in an "Address" popover with port chips, recent addresses and plain errors.
+  - **Hint:** websites get their own blank-frame hint.
+  - **Checklist:** the first-recording checklist warns that a website's contents (such as a signed-in account) will be in the video.
+  - **Changed (Rokk files):**
+    - `src/modules/rokk-stage/show/{address.ts,address.test.ts,ShowSwitch.tsx,show.ts,show.test.ts}`
+    - `src/modules/rokk-stage/record/{record.ts,RecordControls.tsx}`
+    - `src/modules/rokk-stage/{StageLayer.tsx,stage.css}`
+  - **Not changed:** no security settings (the CSP already allows https frames), no upstream files, no budget raised.
+
+- **Hidden mouse path files (2026-11-05):** sidecars now live in `~/Movies/Rokk/.zoom` (hidden in Finder), so the folder shows only videos.
+  - **Migration:** a one-time, lazy, idempotent move from the old place, with a `.migrated-v1` marker.
+  - **Rules:** validators, delete-together and orphan clean-up updated for the new place.
+  - **Changed (Rokk files):**
+    - `src-tauri/src/modules/rokk_record/{cursor.rs,zoom.rs,zoom_export.rs,mod.rs}` (Rust, with tests)
+    - `src/modules/rokk-stage/record/{record.ts,record.test.ts}` (a comment and a test path)
+    - `src/modules/rokk-stage/zoom/player.test.ts`
+  - No upstream files, no new crates.
+
+- **Zoom triggers (2026-11-05):**
+  - **"Zoom on":** a "Clicks" (default) or "Clicks and pauses" mode.
+  - **Arrival rule:** pauses count only after the cursor arrived (80 points within 1.5 s before the rest), and a 4 s idle cap applies to pauses.
+  - **Ticks:** every zoom moment has a stable id and a tick on the scrubber that turns it off or on, saved per recording. The export uses the same plan.
+  - **Changed (Rokk files):** `src/modules/rokk-stage/zoom/{algo.ts,algo.test.ts,player.ts,player.test.ts,camera.test.ts,ZoomPlayer.tsx,zoom.css}`. No upstream files, no budget raised.
+
+- **Zoom player polish (2026-11-05):**
+  - **Layout:** the dialog fits the window (at most `100vh - 32px`, about 20 percent shorter, with the controls scrolling inside as a safety net).
+  - **Motion:** one motion only. The Smooth and Snappy feels and the Feel switch are gone. It is a C2 smootherstep ease (600 ms in, 700 ms out) with the center on the same curve, and a third-order pan follower (170 ms) that carries acceleration across keys.
+  - **Hold:** goes down to 0.3 s.
+  - **Hints:** a hint line and per-slider explanations.
+  - **Debug hook:** `maxAcceleration` and `maxScaleAcceleration`.
+  - **Changed (Rokk files):** `src/modules/rokk-stage/zoom/{algo.ts,algo.test.ts,player.ts,player.test.ts,ZoomPlayer.tsx,zoom.css}`. No upstream files, no budget raised.
+
+- **Auto-zoom, Phase C (2026-11-04):** "Save with zoom" in the preview player writes a NEW `Rokk-...-zoom.mp4` with the zoom baked in, using the camera path the preview computes (TypeScript), rendered by AVFoundation and Core Image (Rust). It shows progress, can be cancelled, and the copy can be played in the player or deleted. The original and its sidecar are never modified.
+  - **New files:**
+    - `src-tauri/src/modules/rokk_record/zoom_export.rs`
+    - `src/modules/rokk-stage/zoom/{camera.ts,camera.test.ts,export.ts,export.test.ts,ExportPanel.tsx}`
+    - `docs/rokk/licenses/objc2-LICENSE-MIT.txt`
+  - **Changed (Rokk files):**
+    - `rokk_record/mod.rs`: `pub mod zoom_export;`, `is_recording`, and the exit hook cancels an export.
+    - `rokk_record/logic.rs`: `check_delete` accepts only original recordings and zoomed copies, by name.
+    - `zoom/{ZoomPlayer.tsx,zoom.css}`.
+  - **Changed (upstream files):**
+    - `src-tauri/Cargo.toml`: two new macOS crates (`objc2-av-foundation` 0.3.2 and `objc2-core-media` 0.3.2, approved by the owner, used under MIT); `objc2-core-image` and `objc2-core-foundation`, already in the lock, are now named directly; and `objc2-foundation` features.
+    - `src-tauri/Cargo.lock`: updates on the next local build.
+    - `src-tauri/src/lib.rs`: three command lines.
+    - `NOTICE`: the objc2 notice.
+  - **Budgets:** no budget raised.
+
+- **Auto-zoom center fix (2026-11-04):** the camera center no longer reverses during a zoom with a stage frame.
+  - **Cause:** the view center was placed inside a range whose edges switch `max`/`min` branches as the scale changes (`algo.ts` `place()` and `range()`), so near a frame edge it reversed direction abruptly during each zoom-in and zoom-out.
+  - **Fix:** a zoom about one fixed point (`cx = W/2 + a (p - W/2)`, `a = (1 - 1/s) / (1 - 1/level)`). Bounds clamp the anchors only, and pan targets are pulled in so the follower never overshoots the range.
+  - **De-jitter:** rests and anchors use a 5-sample median plus a 100 ms exponential smoothing of the cursor; the raw track still decides gaps, leaving the frame, the exit and clicks.
+  - **Debug hook:** per-phase numbers (entering, holding, panning, exiting, idle) and direction reversal counts.
+  - **Changed (Rokk files):** `src/modules/rokk-stage/zoom/{algo.ts,algo.test.ts,player.ts,player.test.ts,ZoomPlayer.tsx}`. No upstream files, no budget raised.
+
+- **Auto-zoom polish (2026-11-04):** a smooth camera, a Smooth or Snappy feel, a fast exit and a 1.5 s hold cap.
+  - **Camera:** a smoothed media clock (decoded frame times, or `currentTime` changes) and one `translate3d` and `scale` write per frame, only when it changes.
+  - **Algorithm:** an exact-landing exponential ease and a closed-form follower, both continuous in value and velocity, and placement inside the bounds without clamping corners.
+  - **Rules:**
+    - The zoom leaves 120 ms after the cursor leaves a 36 point radius.
+    - The hold is capped at 1.5 s after the zoom-in, and a click restarts it.
+    - The 6 s hold and the 1 s click hold are gone.
+  - **Player:** a Feel control (saved in `rokk.zoom.feel`) and a Hold slider; a dev-only `window.rokkZoomDebug()`; the player opts out of the React Compiler (`"use no memo"`) to keep its lazy chunk at 5,576 B gzip.
+  - **Changed (Rokk files):** `src/modules/rokk-stage/zoom/{algo.ts,algo.test.ts,player.ts,player.test.ts,ZoomPlayer.tsx,zoom.css}`.
+  - **Upstream file:** `src/styles/compositingBudget.test.ts`: the player's allowlist entry also allows the `translate3d` it now uses. No budget raised.
+
+- **Auto-zoom, Phase B (2026-11-03):** the zoom algorithm and a "Preview zoom" player for a saved recording with a mouse path file. It plays the original with the zoom applied live; nothing is written.
+  - **New files:** `src/modules/rokk-stage/zoom/{algo.ts,algo.test.ts,player.ts,player.test.ts,ZoomPlayer.tsx,zoom.css}` (one lazy chunk) and `src-tauri/src/modules/rokk_record/zoom.rs` (the read-only `zoom_read` command).
+  - **Changed (Rokk files):** `record/{record.ts,RecordControls.tsx}` (the card's `sidecar` and the "Preview zoom" button), `rokk_record/mod.rs` (`pub mod zoom;`), `rokk_record/cursor.rs` (`Rect` also derives `Deserialize`).
+  - **Changed (upstream files):** `src-tauri/src/lib.rs` (one `zoom_read` line in the command list) `.size-limit.json` (total client JS limit only, see the Size budget policy) and `src/styles/compositingBudget.test.ts` (an allowlist entry for the player's `will-change`, set only while it plays). `tauri.conf.json` is unchanged: the asset protocol was already on (see TODO.md).
+
+- **Stage bar, frame surface and free resizing (2026-11-03):**
+  - **Frame surface:** fixed for both content types; the old selector missed the panel library's inner `<div>`.
+  - **Control bar:** now Show, Wallpaper (one button with a grid popover) and Record. The Small, Medium and Large presets, Lock shape and the Auto-zoom toggle are gone.
+  - **Resizing:** free, with Shift to keep the shape, keyboard edges and double-click reset.
+  - **Auto-zoom:** always on; the sidecar's `frame` is optional (null at an app zoom other than 100%), and the app zoom skip is gone.
+  - **New files:** `src/modules/rokk-stage/{controls.ts,controls.test.ts,Popover.tsx,WallpaperPicker.tsx}`.
+  - **Changed:** `StageLayer.tsx`, `stage.css`, `lib/stage.ts` (`announce`), `frame/{frame.ts,FrameSize.tsx,frame.test.ts}`, `show/{ShowSwitch.tsx,show.test.ts}`, `record/{record.ts,RecordControls.tsx,record.test.ts}`, `src-tauri/src/modules/rokk_record/{cursor.rs,mod.rs}`.
+  - **No upstream files.**
+
+- **Auto-zoom, Phase A (2026-11-03):** the recorder saves the mouse path (times, positions, clicks) as `Rokk-...zoom.json` next to a saved recording, behind an "Auto-zoom" toggle.
+  - New file: `src-tauri/src/modules/rokk_record/cursor.rs`.
+  - Changed: `rokk_record/{mod.rs,mac.rs}` (`record_start` takes `cursorTrack`, `frame` and `pageZoom`; the started time; the stop and delete paths; the terminal event's `sidecar` and `skippedReason`) and `src/modules/rokk-stage/record/{record.ts,ipc.ts,RecordControls.tsx,record.test.ts}`, `stage.css`.
+  - No upstream files.
+  - Compile and lint fixes (2026-11-03):
+    - An explicit lifetime on `cursor::sidecar`.
+    - `write()` uses a helper instead of an immediately called closure (clippy `redundant_closure_call`, which CI denies on Linux).
+    - `is_multiple_of` in the sampling loop.
+    - The cursor thread starts outside the recorder lock, because it reads the window through Tauri.
+    - A test that builds and serializes a sidecar.
+
+- **Stage frame size and edge-to-edge preview (2026-11-03):** Small, Medium and Large presets, a Lock shape toggle and eight drag handles for the stage frame, saved in `rokk.stage.size`. A preview now fills the frame with no dark background or hairlines. New files: `src/modules/rokk-stage/frame/{frame.ts,FrameSize.tsx,frame.test.ts}`. Rokk files changed: `StageLayer.tsx` and `stage.css`. No upstream files.
+
+- **Stage Show switch (2026-11-03):** "Terminal | Preview" in the stage bottom pill, with a localhost port popover, Change port, Reload, and an outside-the-frame hint for a blank preview. The restore rule on exit is in STAGE.md.
+  - New files: `src/modules/rokk-stage/show/{show.ts,ShowSwitch.tsx,show.test.ts}`.
+  - Rokk files changed: `StageLayer.tsx`, `stage.css`, `record/RecordControls.tsx` (the checklist sentence for Preview).
+  - Upstream files: `src/app/App.tsx` (the stage mount line passes the space's tabs, the active id, `setActiveId`, `openPreviewTab` and a reload callback) and `src/modules/preview/PreviewPane.tsx` (a `data-rokk-preview` attribute so stage mode can hide the address bar and notices).
+
 - **Sidebar switch fit (2026-11-03):** the Files, Changes and Git switch uses a container query. Below 268px only the active segment shows its label, and the count badges moved to the icon corner, with the count also in the accessible name. Files: `src/modules/sidebar/SidebarRail.tsx` (upstream file, markup and classes only), new `src/modules/sidebar/railLabels.ts` and `railLabels.test.ts`, `docs/rokk/DESIGN_TOKENS.md`.
 
 - **Recording controller (2026-11-02):** a separate window `rokk-recorder` with the timer, Stop, Discard and Restart, at the bottom center of the Rokk window while recording, created lazily at the first recording.
@@ -202,6 +300,7 @@ Modified (upstream files):
 - The startup budget ("main window startup JS", 540 KB in `.size-limit.json`) is never raised without the owner's approval.
 - On 2026-10-31 the total budget ("total client JS") was raised from 1,505,000 to 1,530,000 bytes (gzip) to make room for the session rail. The other four budgets are unchanged.
 - On 2026-10-31 the total budget was raised again, from 1,530,000 to 1,560,000 bytes, to make room for the "ship it" preflight and the session brief. This is the last raise until Terax's own AI agent is trimmed (see `docs/rokk/TODO.md` and `docs/rokk/AI_TRIM_MAP.md`).
+- On 2026-11-03 the total budget was raised from 1,560,000 to 1,575,000 bytes, with the owner's approval, for the zoom preview player (Auto-zoom, Phase B). The next room must come from trimming Terax's built-in AI agent (see `docs/rokk/TODO.md`). The startup budget and the three Ghostty budgets are unchanged.
 - Every future raise needs a written reason here and the owner's approval.
 
 Modified: `.size-limit.json` (total client JS limit only), `CLAUDE.md` (Rokk rules).

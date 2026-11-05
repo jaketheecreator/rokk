@@ -18,3 +18,8 @@ Screen recording on macOS uses the screencapturekit crate
 apple-cf, apple-metal and doom-fish-utils from the same doom-fish project, dual licensed
 under the MIT License or the Apache License, Version 2.0. Rokk uses them under
 the MIT License; the text is in docs/rokk/licenses/screencapturekit-LICENSE-MIT.txt.
+
+Saving a zoomed copy of a recording on macOS uses the objc2-av-foundation and
+objc2-core-media crates (https://github.com/madsmtm/objc2), licensed under the
+zlib License, the Apache License, Version 2.0, or the MIT License. Rokk uses
+them under the MIT License; the text is in docs/rokk/licenses/objc2-LICENSE-MIT.txt.

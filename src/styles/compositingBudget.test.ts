@@ -50,6 +50,10 @@ const ALLOWED: Record<string, { allows: string[]; why: string }> = {
     allows: ["backdrop filter", "filter blur"],
     why: "Rokk stage mode glass controls (backdrop-filter: blur), only while stage mode is on",
   },
+  "modules/rokk-stage/zoom/player.ts": {
+    allows: ["will-change", "3D transform"],
+    why: "Rokk Preview zoom video, only in its open dialog: will-change while it plays with Zoom on, and the zoom as one translate3d",
+  },
   "modules/editor/lib/chromeTheme.ts": {
     allows: ["backdrop filter"],
     why: "CodeMirror tooltip, exists only while shown",

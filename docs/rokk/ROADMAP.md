@@ -60,6 +60,12 @@ Rokk exists to help beginners and vibe coders waste fewer AI credits. These feat
 | --- | --- | --- |
 | Stage mode, Phase 1 | Built | Stage view with wallpaper, frame, mark, Exit pill and picker (see STAGE.md). `Mod+Alt+S` or the top bar play button. |
 | Stage mode, Phase 2 | Built, pending tests in a packaged build | Record the Rokk window to MP4 on macOS 15+ (see RECORD.md). |
+| Auto-zoom, Phase A: mouse path | Built, pending the manual checklist | Always saves the mouse path next to each recording; the frame rectangle is optional (see RECORD.md). |
+| Auto-zoom, Phase B: algorithm and preview player | Built, pending the manual test | "Preview zoom" on the result card plays the recording with the zoom applied; nothing is written (see ZOOM_MAP.md). |
+| Auto-zoom, Phase C: export | Built, pending the first Rust build and the manual test | "Save with zoom" writes a new Rokk-...-zoom.mp4 with AVFoundation (see ZOOM_MAP.md section 10). |
+| Auto-zoom, Phase D: tuning | Planned | Sensitivity and defaults. |
+| Stage mode: frame size | Built, pending a real run | Free drag resizing with keyboard edges, one clean frame surface, and a simpler control bar (see STAGE.md). |
+| Stage mode: Show switch | Built, pending a real run | Terminal or Preview in the stage frame, with a port popover for localhost (see STAGE.md). |
 | Stage mode, Phase 2: recording controller | Built, pending the manual checklist | A separate window with the timer, Stop, Discard and Restart at the bottom of the stage, not in the video (see RECORD.md). |
 | Stage mode, Phases 3 and 4 | Planned | Window shapes, share panel (see STAGE_MAP.md). |
 | Recording | Planned | Record button in the top bar, a floating pill and a shortcut. The user picks the capture each time: preview only, preview plus activity, whole screen, or a chosen window. Recording the preview cannot come from app code because it is a cross-origin iframe, so it needs screen capture. |

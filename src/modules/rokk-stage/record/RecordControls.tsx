@@ -13,7 +13,7 @@ import { IS_MAC } from "@/lib/platform";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
-import { useEffect, useRef, useState } from "react";
+import { lazy, type Ref, Suspense, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { getStage, registerRecordingStop, setRecording, useStage } from "../lib/stage";
@@ -28,6 +28,8 @@ import {
   isStuck,
   type ResultCard,
   CHECKLIST_TEXT,
+  checklistFor,
+  trackArgs,
   DEV_NOTE,
   errorDetail,
   errorLines,
@@ -48,6 +50,9 @@ import {
   writeAck,
 } from "./record";
 
+// The "Preview zoom" player loads only when opened.
+const ZoomPlayer = lazy(() => import("../zoom/ZoomPlayer"));
+
 function storage(): Storage | null {
   try {
     return window.localStorage;
@@ -66,16 +71,33 @@ function showError(e: RecordError) {
 function showSaved(path: string) {
   const t = savedToast(path);
   toast.success(t.title, {
-    action: { label: "Show in Finder", onClick: () => void revealItemInDir(t.path) },
-    cancel: { label: "Copy path", onClick: () => void navigator.clipboard.writeText(t.path) },
+    action: {
+      label: "Show in Finder",
+      onClick: () => void revealItemInDir(t.path),
+    },
+    cancel: {
+      label: "Copy path",
+      onClick: () => void navigator.clipboard.writeText(t.path),
+    },
   });
 }
 
 /** The Record pill, its dialogs and the countdown. macOS only. */
-export default function RecordControls({ onHover }: { onHover: (inside: boolean) => void }) {
+export default function RecordControls({
+  onHover,
+  show = "terminal",
+  external = false,
+}: {
+  onHover: (inside: boolean) => void;
+  show?: string;
+  /** The active preview shows a website (see show/address.ts). */
+  external?: boolean;
+}) {
   const { recordRequest, recording } = useStage();
   const [card, setCard] = useState<ResultCard | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [zoomOpen, setZoomOpen] = useState(false);
+  const zoomButton = useRef<HTMLButtonElement>(null);
   const [status, setStatus] = useState<RecordStatus | null>(null);
   const [dialog, setDialog] = useState<"permission" | "checklist" | null>(null);
   const [asked, setAsked] = useState(false);
@@ -136,7 +158,11 @@ export default function RecordControls({ onHover }: { onHover: (inside: boolean)
   // and on focus, and clear it when nothing is recording.
   useEffect(() => {
     if (!recording) return;
-    const watch = createStuckWatch(ipc.recordStatus, () => getStage().recording, () => setRecording(false));
+    const watch = createStuckWatch(
+      ipc.recordStatus,
+      () => getStage().recording,
+      () => setRecording(false),
+    );
     const onFocus = () => void watch.check();
     window.addEventListener("focus", onFocus);
     return () => {
@@ -156,11 +182,20 @@ export default function RecordControls({ onHover }: { onHover: (inside: boolean)
         () => setCount(null),
         nextFrame,
         () =>
-          ipc.recordStart(getCurrentWebviewWindow().label, getStage().on).catch((e) => {
-            const error = asRecordError(e);
-            setRecording(false);
-            setCard({ kind: "error", error });
-          }),
+          ipc
+            .recordStart(
+              getCurrentWebviewWindow().label,
+              getStage().on,
+              trackArgs(
+                document.querySelector("#workspace > div")?.getBoundingClientRect() ?? null,
+                Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--app-zoom")) || 1,
+              ),
+            )
+            .catch((e) => {
+              const error = asRecordError(e);
+              setRecording(false);
+              setCard({ kind: "error", error });
+            }),
       );
     });
   };
@@ -197,7 +232,14 @@ export default function RecordControls({ onHover }: { onHover: (inside: boolean)
           onAgain={() => (card.kind === "error" ? onRecord() : begin())}
           onDelete={() => setConfirmDelete(true)}
           onDone={() => setCard(null)}
+          onZoom={() => setZoomOpen(true)}
+          zoomRef={zoomButton}
         />
+      ) : null}
+      {zoomOpen && card?.kind === "saved" && card.sidecar ? (
+        <Suspense fallback={null}>
+          <ZoomPlayer mp4={card.path} sidecar={card.sidecar} onClose={() => setZoomOpen(false)} opener={() => zoomButton.current} />
+        </Suspense>
       ) : null}
       {count !== null ? (
         <div className="rk-stage-countdown" role="dialog" aria-modal="true" aria-label="Recording starts in">
@@ -266,7 +308,10 @@ export default function RecordControls({ onHover }: { onHover: (inside: boolean)
                 void ipc
                   .recordRequestPermission()
                   .then(() => ipc.recordOpenSettings())
-                  .then(() => setAsked(true), () => setAsked(true))
+                  .then(
+                    () => setAsked(true),
+                    () => setAsked(true),
+                  )
                   .finally(() => void refresh());
               }}
             >
@@ -280,7 +325,7 @@ export default function RecordControls({ onHover }: { onHover: (inside: boolean)
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Before you record</AlertDialogTitle>
-            <AlertDialogDescription>{CHECKLIST_TEXT}</AlertDialogDescription>
+            <AlertDialogDescription>{checklistFor(CHECKLIST_TEXT, show, external)}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -300,9 +345,7 @@ export default function RecordControls({ onHover }: { onHover: (inside: boolean)
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this recording?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {card?.kind === "saved" ? card.name : ""} will be deleted from Movies/Rokk. This cannot be undone.
-            </AlertDialogDescription>
+            <AlertDialogDescription>{card?.kind === "saved" ? card.name : ""} will be deleted from Movies/Rokk. This cannot be undone.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -331,7 +374,11 @@ export default function RecordControls({ onHover }: { onHover: (inside: boolean)
 
 /** Which buttons a result card offers, in order. */
 export function cardActions(card: ResultCard): string[] {
-  if (card.kind === "saved") return ["Show in Finder", "Record again", "Delete recording", "Done"];
+  if (card.kind === "saved") {
+    // "Preview zoom" only when the recording has its saved mouse path.
+    const zoom = card.sidecar ? ["Preview zoom"] : [];
+    return ["Show in Finder", ...zoom, "Record again", "Delete recording", "Done"];
+  }
   if (card.kind === "discarded") return ["Record again", "Done"];
   return ["Try again", "Done"];
 }
@@ -342,18 +389,23 @@ export function ResultCardView({
   onAgain,
   onDelete,
   onDone,
+  onZoom,
+  zoomRef,
 }: {
   card: ResultCard;
   onShow: (path: string) => void;
   onAgain: () => void;
   onDelete: () => void;
   onDone: () => void;
+  onZoom?: () => void;
+  zoomRef?: Ref<HTMLButtonElement>;
 }) {
   const handlers: Record<string, () => void> = {
     "Show in Finder": () => card.kind === "saved" && onShow(card.path),
     "Record again": onAgain,
     "Try again": onAgain,
     "Delete recording": onDelete,
+    "Preview zoom": () => onZoom?.(),
     Done: onDone,
   };
   return (
@@ -361,15 +413,20 @@ export function ResultCardView({
       <p className="rk-stage-result-title">{cardTitle(card)}</p>
       {card.kind === "saved" ? (
         <p className="rk-stage-result-detail">
-          {`${card.name}${card.size ? `, ${card.size}` : ""}${card.warning ? `. ${card.warning.message}` : ""}`}
+          {`${card.name}${card.size ? `, ${card.size}` : ""}${card.warning ? `. ${card.warning.message}` : ""}${card.note ? `. ${card.note}` : ""}`}
         </p>
       ) : null}
-      {card.kind === "error" ? (
-        <p className="rk-stage-result-detail">{errorDetail(card.error.code, card.reason)}</p>
-      ) : null}
+      {card.kind === "error" ? <p className="rk-stage-result-detail">{errorDetail(card.error.code, card.reason)}</p> : null}
       <div className="rk-stage-result-actions">
         {cardActions(card).map((label) => (
-          <button key={label} type="button" className="rk-stage-record" onClick={handlers[label]}>
+          <button
+            key={label}
+            ref={label === "Preview zoom" ? zoomRef : undefined}
+            aria-haspopup={label === "Preview zoom" ? "dialog" : undefined}
+            type="button"
+            className="rk-stage-record"
+            onClick={handlers[label]}
+          >
             {label}
           </button>
         ))}

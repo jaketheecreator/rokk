@@ -18,7 +18,7 @@ Records the Rokk window to an MP4 file while stage mode is on. macOS 15 or later
   - Permission missing: **Allow screen recording**.
   - Other platforms: hidden.
 - **Permission:** a dialog explains it, then "Open System Settings" asks macOS and opens the Screen Recording pane. After that it says "Quit and reopen Rokk, then try again", because macOS may apply the permission only after a restart.
-- **First recording:** a one-time checklist (remembered in `localStorage["rokk.record.ack"]`) reminds you that anything visible in the window will be in the video.
+- **First recording:** a one-time checklist (remembered in `localStorage["rokk.record.ack"]`) reminds you that anything visible in the window will be in the video. With Preview selected in the Show switch it adds: "The preview is recorded as it appears, including anything your app shows on screen." When that preview shows a website (not a localhost address, judged by the same address parser), it also adds: "The preview shows a website. Anything visible on it, such as a signed-in account, will be in the video." Starting a recording never changes the active tab, and the preview stays interactive while recording.
 - **Countdown:** 3, 2, 1 over a dimmed backdrop, with Cancel. The overlay is removed, one frame passes, and only then does capture start, so the countdown is never in the video.
 - **While recording:**
   - All stage controls are hidden (`html[data-rokk-recording="on"]`); only the wallpaper, the frame and the mark remain.
@@ -79,6 +79,57 @@ During a real run on macOS 26.6.2, the only visible control while recording was 
 
 - **Unknown:** what that pill is exactly could not be established from Apple's documentation or the crate. It is most likely a system capture or sharing control for a window being captured.
 - **Most likely callback:** ScreenCaptureKit reports a stop by the user as `stream(_:didStopWithError:)` with code `-3817` (`userStopped`), and a system stop as `-3821` (`systemStoppedStream`). The log line `callback stream_did_stop error=<code>` will show which one arrives.
+
+## Auto-zoom mouse path (Phase A)
+
+While recording, Rokk can save the mouse path next to the video, so a later phase can zoom the finished video where the mouse rests (see ZOOM_MAP.md). Nothing in the video changes and nothing is shown while recording.
+
+- **Always on:** there is no setting. The first-recording checklist always says: "Rokk also saves your mouse path (positions and clicks only) next to the video, so it can be zoomed later. Nothing about your screen is saved."
+- **How it is read:** a thread `rokk-cursor` in `rokk_record/cursor.rs` polls 30 times a second.
+  - `CGEventGetLocation(CGEventCreate(NULL))` gives global points, top left origin of the main display. `CGEventSourceButtonState` gives the left and right buttons.
+  - Neither is an event tap, so no Accessibility or Input Monitoring permission applies (confirm in the manual test).
+- **Clock:** time 0 is the moment the recording output reports `recording_did_start`. If that has not arrived within a second, the moment capture started is used.
+- **Coordinates:** video pixels. The Rokk window's outer position and size (points) and its scale factor give the mapping; the video is the window's pixel size at start.
+  - Positions outside the window are not stored.
+  - A click is stored when a button goes down, with its button (0 left, 1 right).
+  - A move, resize, scale or display change of the window is stored as an event with its new rectangle, and sampling goes on.
+  - At most 40,000 samples (about 22 minutes); then sampling stops.
+- **App zoom:** the path does not depend on the app zoom. Positions come only from the global cursor and the Rokk window rectangle. The stage frame rectangle (`frame`) comes from the page in CSS pixels, which match points only at app zoom 100%. It is sent only then and is otherwise written as `"frame": null`, so a later phase zooms within the whole video.
+- **The file:** `Rokk-YYYY-MM-DD-HHMMSS.zoom.json`, with the same stem as its MP4, in the hidden folder `~/Movies/Rokk/.zoom` (since 2026-11-05).
+  - **Why hidden:** Finder hides folders whose name starts with a dot, so `~/Movies/Rokk` shows only videos: originals, `-zoom` copies, and a temporary `-partial.mp4` while a recording or export runs. Cmd+Shift+. in Finder shows hidden items.
+  - **The folder:** `.zoom` is created on demand with default permissions. It must be a real directory: a symlink or a file named `.zoom` is refused, and nothing is written or read then.
+  - **Validation:** a sidecar must be a regular file with a generated name for an original recording, directly inside `.zoom` once symlinks are resolved, with no `..`. The old place next to the MP4 is refused (`cursor::check_sidecar`).
+  - **Writing:** temp then rename, never overwriting.
+  - **Delete together:** `record_delete` of an original removes its sidecar from `.zoom` (and any leftover in the old place); a `-zoom` copy has none.
+  - **Orphans:** at the start of each recording, sidecars whose MP4 is gone are deleted, in `.zoom` and in the old place.
+  - **Migration (one time):** `cursor::ensure_migrated` runs lazily the first time `record_status`, `zoom_read`, `record_delete`, a recording start or an export touches sidecars.
+    - **What it moves:** each regular file named exactly `Rokk-YYYY-MM-DD-HHMMSS.zoom.json` (with counters) moves from `~/Movies/Rokk` into `.zoom`, with a hard link and then removal of the old name, so it never overwrites. On volumes without hard links it renames after checking the target is free.
+    - **Conflicts and orphans:** a copy already in `.zoom` wins and the old duplicate is deleted. Old sidecars whose MP4 is gone are deleted.
+    - **Safety:** symlinks are never followed and other files are never touched. One failed file does not fail the command.
+    - **Done marker:** it writes `.zoom/.migrated-v1` when done and logs `[rokk_record] sidecar migration moved=<n> removed_orphans=<n> skipped=<n>`.
+  - It is written only when a recording ends as saved, after the MP4: a fresh temp name, then a rename that never overwrites, inside `~/Movies/Rokk` only, no symlinks.
+  - Discard, Restart and errors write nothing and drop the data in memory.
+  - `record_delete` deletes the sidecar with its MP4.
+  - Each new recording removes sidecars whose MP4 is gone, so a sidecar never stays without its video.
+- **Format, version 1:**
+
+```json
+{"version":1,"note":"Mouse path only. Contains no screen content.",
+ "video":{"width":2554,"height":1616,"scale":2},"frame":{"x":278,"y":160,"w":2000,"h":1240},
+ "hz":30,"samples":[[0,1200,900]],"clicks":[[5120,1310,880,0]],
+ "events":[{"t_ms":8000,"kind":"move","rect":{"x":100,"y":80,"w":2554,"h":1616}}],
+ "end":{"t_ms":10000,"reason":"tray"}}
+```
+
+- **Terminal event:** `sidecar` (the saved path or null) and `skippedReason` (`write_failed` or null).
+- **Reading it back (Phase B):** `zoom_read(path)` in `rokk_record/zoom.rs` reads a sidecar for the "Preview zoom" player. It writes nothing.
+  - The name must be a generated `Rokk-YYYY-MM-DD-HHMMSS.zoom.json` (optionally with `-N`), directly in `~/Movies/Rokk/.zoom` once symlinks and `..` are resolved, not a symlink, with its MP4 present one folder up (`cursor::check_sidecar`, then `logic::check_delete` on the MP4, the same rules as `record_delete`).
+  - At most 2 MB, version 1 only, no unknown fields, and only the fixed words; otherwise a short plain error.
+  - The result card shows "Preview zoom" only when the terminal event carries a `sidecar` path for the saved MP4.
+- **Saving with zoom (Phase C):** `zoom_export_start`, `zoom_export_cancel` and `zoom_export_supported` in `rokk_record/zoom_export.rs` write a NEW `Rokk-...-zoom.mp4` next to the original (see ZOOM_MAP.md section 10). The original and its sidecar are only read.
+  - The export refuses while a recording is starting, running or stopping (`is_recording`).
+  - `record_delete` now accepts only original recordings (`Rokk-YYYY-MM-DD-HHMMSS.mp4`, with up to two counters) and zoomed copies (`<stem>-zoom.mp4`, `<stem>-zoom-N.mp4`). Deleting an original deletes its sidecar, not its zoomed copy.
+- **Privacy:** the file holds only numbers and three kinds of fixed words: the note, the end reason and event kinds (a Rust test checks this). It holds no screen content, keys, text or file names. The log gets one line per recording: `[rokk_record] cursor samples=<n> clicks=<n> events=<n> skipped=<reason or none>`.
 
 ## Recording controller
 
@@ -141,6 +192,17 @@ Run each in stage mode, with `pnpm tauri dev` and the log open:
 - [ ] Two displays: move the Rokk window to the second display while recording. The controller follows and stays inside that display.
 - [ ] The log shows `controller sharing_type=0`, or the error.
 - [ ] If the controller appears in the recorded video, remove the controller and keep the tray item and shortcuts only (option 3).
+
+
+### Auto-zoom mouse path
+
+- [ ] The "Preview zoom" player has its own checklist in ZOOM_MAP.md.
+- [ ] Record 10 seconds with Auto-zoom on, clicking the four corners of the stage frame and a button in the page. Open the `.zoom.json` and check that the clicks sit at those places in video pixels. A plain script is fine: `python3 -c "import json,sys;d=json.load(open(sys.argv[1]));print(d['video'],d['frame']);print(d['samples'][:1],d['samples'][-1:]);print(d['clicks'])" FILE`
+- [ ] Stop from the menu bar item, then from the controller; a sidecar exists each time.
+- [ ] Discard: no sidecar.
+- [ ] Delete a recording from the result card: both files are gone.
+- [ ] Set the app zoom to 110 percent and record: a sidecar is saved with `"frame": null`, and the positions still match the video.
+- [ ] macOS showed no new permission prompt.
 
 ## Files
 

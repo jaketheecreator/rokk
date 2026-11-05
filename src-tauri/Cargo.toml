@@ -95,7 +95,31 @@ keyring = { version = "3.6", default-features = false, features = [
 objc2 = { version = "0.6", features = ["exception"] }
 block2 = "0.6"
 objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSColor", "NSPasteboard", "NSPasteboardItem", "NSWindow", "NSWorkspace"] }
-objc2-foundation = { version = "0.3", features = ["NSArray", "NSURL", "NSString", "NSUserDefaults", "NSValue"] }
+objc2-foundation = { version = "0.3", features = ["NSArray", "NSURL", "NSString", "NSUserDefaults", "NSValue", "NSDictionary", "NSError", "NSObject", "NSProcessInfo"] }
+# Rokk zoom export (docs/rokk/ZOOM_MAP.md, Phase C): AVFoundation reads the
+# recording through a Core Image composition and writes a new H.264 MP4.
+# Only the features the export uses; defaults would pull in Core Video.
+objc2-av-foundation = { version = "0.3.2", default-features = false, features = [
+	"std",
+	"AVAsset",
+	"AVAssetTrack",
+	"AVAssetReader",
+	"AVAssetReaderOutput",
+	"AVAssetWriter",
+	"AVAssetWriterInput",
+	"AVVideoComposition",
+	"AVVideoCompositing",
+	"AVMediaFormat",
+	"AVVideoSettings",
+	"block2",
+	"objc2-core-media",
+	"objc2-core-image",
+	"objc2-core-foundation",
+] }
+objc2-core-media = { version = "0.3.2", default-features = false, features = ["std", "CMBase", "CMSampleBuffer", "CMTime"] }
+# Already in Cargo.lock (through Tauri's dependencies); named here for its types.
+objc2-core-image = { version = "0.3.2", default-features = false, features = ["std", "CIImage", "CIContext", "objc2-core-foundation"] }
+objc2-core-foundation = { version = "0.3.2", default-features = false, features = ["std", "CFCGTypes"] }
 fsevent-sys = "4.1"
 window-vibrancy = "0.6"
 # Rokk recording (docs/rokk/RECORD.md): window capture to MP4, macOS 15+,

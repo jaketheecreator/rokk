@@ -77,6 +77,8 @@ export const PreviewPane = forwardRef<PreviewPaneHandle, Props>(
 
     return (
       <div
+        // Rokk stage mode hides the address bar and notices in its frame.
+        data-rokk-preview=""
         className="flex h-full w-full flex-col overflow-hidden bg-background"
         style={{
           visibility: visible ? "visible" : "hidden",

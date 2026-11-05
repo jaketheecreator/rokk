@@ -4,7 +4,10 @@
 // See docs/rokk/RECORD.md.
 
 pub mod controller;
+pub mod cursor;
 pub mod logic;
+pub mod zoom;
+pub mod zoom_export;
 #[cfg(target_os = "macos")]
 mod mac;
 
@@ -46,6 +49,12 @@ struct StateEvent {
     /// Size in bytes of the saved file.
     #[serde(skip_serializing_if = "Option::is_none")]
     size: Option<u64>,
+    /// The saved mouse path file, on the terminal event (null when none).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    sidecar: Option<Option<String>>,
+    /// Why the mouse path was not saved although asked for ("write_failed").
+    #[serde(skip_serializing_if = "Option::is_none")]
+    skipped_reason: Option<Option<&'static str>>,
     /// Why it ended, on the terminal event: "tray", "shortcut", "system", ...
     #[serde(skip_serializing_if = "Option::is_none")]
     reason: Option<&'static str>,
@@ -54,7 +63,17 @@ struct StateEvent {
 impl StateEvent {
     #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
     fn progress(state: RecState, elapsed: u64) -> Self {
-        Self { state, elapsed, finished: None, error: None, outcome: None, size: None, reason: None }
+        Self {
+            state,
+            elapsed,
+            finished: None,
+            error: None,
+            outcome: None,
+            size: None,
+            sidecar: None,
+            skipped_reason: None,
+            reason: None,
+        }
     }
 
     /// The single terminal event of a recording.
@@ -65,6 +84,8 @@ impl StateEvent {
         finished: Option<String>,
         size: Option<u64>,
         error: Option<RecordError>,
+        sidecar: Option<String>,
+        skipped: Option<&'static str>,
     ) -> Self {
         let outcome = logic::outcome_name(finished.is_some(), error.is_some());
         Self {
@@ -74,6 +95,8 @@ impl StateEvent {
             error,
             outcome: Some(outcome),
             size,
+            sidecar: Some(sidecar),
+            skipped_reason: Some(skipped),
             reason: reason.map(logic::StopReason::name),
         }
     }
@@ -97,6 +120,8 @@ mod imp {
         final_name: String,
         partial: PathBuf,
         session: Option<mac::Session>,
+        /// The mouse path thread, when Auto-zoom is on.
+        tracker: Option<cursor::Tracker>,
         /// Kept across recordings for `record_status`.
         last_reason: Option<&'static str>,
         last_error_code: Option<ErrorCode>,
@@ -126,9 +151,11 @@ mod imp {
         reason: Option<StopReason>,
         finished: Option<String>,
         error: Option<RecordError>,
+        sidecar: Option<String>,
+        skipped: Option<&'static str>,
     ) {
         let size = finished.as_ref().and_then(|p| std::fs::metadata(p).ok()).map(|m| m.len());
-        let _ = app.emit(EVENT, StateEvent::terminal(elapsed, reason, finished, size, error));
+        let _ = app.emit(EVENT, StateEvent::terminal(elapsed, reason, finished, size, error, sidecar, skipped));
     }
 
     /// One legal state step, logged as "state a->b" (with the reason when known).
@@ -152,6 +179,9 @@ mod imp {
     }
 
     pub fn status() -> RecordStatus {
+        if let Some(home) = dirs::home_dir() {
+            cursor::ensure_migrated(&home);
+        }
         let r = lock();
         RecordStatus {
             supported: true,
@@ -168,7 +198,12 @@ mod imp {
         mac::request_permission()
     }
 
-    pub fn start(app: &AppHandle, label: &str, stage_on: bool) -> Result<RecordStatus, RecordError> {
+    pub fn start(
+        app: &AppHandle,
+        label: &str,
+        stage_on: bool,
+        opts: cursor::Options,
+    ) -> Result<RecordStatus, RecordError> {
         let err = |c| Err(RecordError::new(c));
         if !stage_on {
             return err(ErrorCode::NotInStage);
@@ -185,10 +220,29 @@ mod imp {
         }
         match prepare_and_capture(app, &window, label) {
             Ok(()) => {
-                let mut r = lock();
-                step(&mut r, RecEvent::Started, None);
-                r.started = Some(Instant::now());
-                drop(r);
+                let now = Instant::now();
+                let flags = {
+                    let mut r = lock();
+                    step(&mut r, RecEvent::Started, None);
+                    r.started = Some(now);
+                    r.session.as_ref().map(|s| s.flags())
+                };
+                // Started outside the lock: it reads the window through Tauri.
+                if opts.cursor_track {
+                    let tracker = cursor::Tracker::start(
+                        window.clone(),
+                        opts.frame,
+                        move || flags.as_ref().and_then(|f| f.started()),
+                        now,
+                    );
+                    let mut r = lock();
+                    if r.state == RecState::Recording {
+                        r.tracker = tracker;
+                    } else {
+                        drop(r);
+                        let _ = tracker.and_then(cursor::Tracker::finish);
+                    }
+                }
                 emit_progress(app, RecState::Recording, 0);
                 controller::sync(app, label, RecState::Recording);
                 spawn_ticker(app.clone());
@@ -205,7 +259,7 @@ mod imp {
                     partial
                 };
                 let _ = std::fs::remove_file(partial);
-                emit_terminal(app, 0, None, None, Some(e.clone()));
+                emit_terminal(app, 0, None, None, Some(e.clone()), None, None);
                 Err(e)
             }
         }
@@ -221,6 +275,8 @@ mod imp {
         let (final_name, partial_name) = logic::pick_names(mac::local_stamp(), |n| dir.join(n).exists())
             .ok_or_else(|| RecordError::new(ErrorCode::FolderNotWritable))?;
         let partial = logic::check_output(&home, &dir.join(&partial_name))?;
+        cursor::ensure_migrated(&home);
+        cursor::remove_orphans(&home);
         logic::check_output(&home, &dir.join(&final_name))?;
         // Writable: create the partial name once, then let the recorder own it.
         std::fs::OpenOptions::new()
@@ -338,13 +394,23 @@ mod imp {
     /// Every way out of a recording ends here: the indicator goes, the file is
     /// finalized or deleted, then exactly one terminal event is emitted.
     pub fn stop(app: &AppHandle, reason: StopReason) -> Result<Option<String>, RecordError> {
-        let (session, partial, dir, final_name, secs, label) = {
+        let (session, partial, dir, final_name, secs, label, tracker) = {
             let mut r = lock();
             if !step(&mut r, RecEvent::Stop, Some(reason)) {
                 return Err(RecordError::new(ErrorCode::NotRecording));
             }
-            (r.session.take(), r.partial.clone(), r.dir.clone(), r.final_name.clone(), elapsed(&r), r.label.clone())
+            (
+                r.session.take(),
+                r.partial.clone(),
+                r.dir.clone(),
+                r.final_name.clone(),
+                elapsed(&r),
+                r.label.clone(),
+                r.tracker.take(),
+            )
         };
+        // The mouse path thread stops first, on every path.
+        let track = tracker.and_then(cursor::Tracker::finish);
         mac::remove_indicator(app);
         controller::sync(app, &label, RecState::Stopping);
         emit_progress(app, RecState::Stopping, secs);
@@ -372,16 +438,43 @@ mod imp {
             }
             _ => log::info!("[rokk_record] finalize result=discarded"),
         }
+        let (sidecar, skipped) = save_track(track, finished.as_deref(), reason);
         {
             let mut r = lock();
             step(&mut r, event, Some(reason));
             reset(&mut r, Some(reason), error.as_ref().map(|e| e.code));
         }
-        emit_terminal(app, secs, Some(reason), finished.clone(), error.clone());
+        emit_terminal(app, secs, Some(reason), finished.clone(), error.clone(), sidecar, skipped);
         match error {
             Some(e) if e.code != ErrorCode::DiskFull => Err(e),
             _ => Ok(finished),
         }
+    }
+
+    /// Writes the mouse path next to a saved recording. Discard, restart and
+    /// errors write nothing; the in-memory track is dropped either way.
+    fn save_track(
+        track: Option<(cursor::Track, i64)>,
+        finished: Option<&str>,
+        reason: StopReason,
+    ) -> (Option<String>, Option<&'static str>) {
+        let requested = track.is_some();
+        let (n, c, e) = track.as_ref().map(|(t, _)| (t.samples.len(), t.clicks.len(), t.events.len())).unwrap_or_default();
+        let kept = finished.is_some() && cursor::end_reason(reason).is_some();
+        let saved = match (track, finished, cursor::end_reason(reason)) {
+            (Some((t, end_ms)), Some(mp4), Some(why)) => dirs::home_dir().and_then(|home| {
+                let json = serde_json::to_vec(&cursor::sidecar(&t, end_ms, why)).ok()?;
+                cursor::write(&home, std::path::Path::new(mp4), &json).ok()
+            }),
+            _ => None,
+        };
+        // Only a kept recording reports a skip; a discard just drops the track.
+        let skipped = (kept && requested && saved.is_none()).then_some("write_failed");
+        log::info!(
+            "[rokk_record] cursor samples={n} clicks={c} events={e} skipped={}",
+            skipped.unwrap_or("none")
+        );
+        (saved.map(|p| p.display().to_string()), skipped)
     }
 
     /// Renames the finalized partial file to a free final name; never overwrites.
@@ -423,8 +516,17 @@ mod imp {
 
     pub fn delete(path: &str) -> Result<(), RecordError> {
         let home = dirs::home_dir().ok_or_else(|| RecordError::new(ErrorCode::NotDeletable))?;
+        cursor::ensure_migrated(&home);
         let real = logic::check_delete(&home, std::path::Path::new(path))?;
-        std::fs::remove_file(real).map_err(|_| RecordError::new(ErrorCode::NotDeletable))
+        std::fs::remove_file(&real).map_err(|_| RecordError::new(ErrorCode::NotDeletable))?;
+        // The mouse path goes with its recording.
+        cursor::delete_for(&home, &real);
+        Ok(())
+    }
+
+    /// Whether a recording is starting, running or stopping.
+    pub fn is_recording() -> bool {
+        lock().state != RecState::Idle
     }
 
     /// App is quitting: finalize a running recording first.
@@ -448,7 +550,7 @@ mod imp {
     pub fn request_permission() -> bool {
         false
     }
-    pub fn start(_: &AppHandle, _: &str, _: bool) -> Result<RecordStatus, RecordError> {
+    pub fn start(_: &AppHandle, _: &str, _: bool, _: cursor::Options) -> Result<RecordStatus, RecordError> {
         unsupported()
     }
     pub fn stop(_: &AppHandle, _: logic::StopReason) -> Result<Option<String>, RecordError> {
@@ -461,10 +563,20 @@ mod imp {
         unsupported()
     }
     pub fn on_exit(_: &AppHandle) {}
+    pub fn is_recording() -> bool {
+        false
+    }
 }
 
 pub fn on_exit(app: &AppHandle) {
+    // A zoom export in progress is cancelled and its partial file deleted.
+    zoom_export::on_exit();
     imp::on_exit(app);
+}
+
+/// Whether a recording is starting, running or stopping.
+pub fn is_recording() -> bool {
+    imp::is_recording()
 }
 
 async fn blocking<T: Send + 'static>(work: impl FnOnce() -> T + Send + 'static) -> T {
@@ -490,8 +602,15 @@ pub fn record_open_settings(app: AppHandle) -> Result<(), RecordError> {
 }
 
 #[tauri::command]
-pub async fn record_start(app: AppHandle, window_label: String, stage_on: bool) -> Result<RecordStatus, RecordError> {
-    blocking(move || imp::start(&app, &window_label, stage_on)).await
+pub async fn record_start(
+    app: AppHandle,
+    window_label: String,
+    stage_on: bool,
+    cursor_track: Option<bool>,
+    frame: Option<cursor::CssRect>,
+) -> Result<RecordStatus, RecordError> {
+    let opts = cursor::Options { cursor_track: cursor_track.unwrap_or(false), frame };
+    blocking(move || imp::start(&app, &window_label, stage_on, opts)).await
 }
 
 #[tauri::command]
@@ -535,6 +654,8 @@ mod tests {
             Some("/Users/x/Movies/Rokk/Rokk-2026-11-02-090507.mp4".into()),
             Some(4096),
             None,
+            Some("/Users/x/Movies/Rokk/.zoom/Rokk-2026-11-02-090507.zoom.json".into()),
+            None,
         ))
         .unwrap();
         assert_eq!(saved["state"], "idle");
@@ -544,7 +665,9 @@ mod tests {
         assert_eq!(saved["size"], 4096);
         assert!(saved["error"].is_null());
         let keys: Vec<_> = saved.as_object().unwrap().keys().cloned().collect();
-        assert_eq!(keys.len(), 7, "{keys:?}");
+        assert_eq!(keys.len(), 9, "{keys:?}");
+        assert_eq!(saved["sidecar"], "/Users/x/Movies/Rokk/.zoom/Rokk-2026-11-02-090507.zoom.json");
+        assert!(saved["skippedReason"].is_null());
 
         let failed = serde_json::to_value(StateEvent::terminal(
             3,
@@ -552,6 +675,8 @@ mod tests {
             None,
             None,
             Some(RecordError::new(ErrorCode::FinalizeTimeout)),
+            None,
+            None,
         ))
         .unwrap();
         assert_eq!(failed["outcome"], "error");
@@ -561,12 +686,16 @@ mod tests {
         assert!(failed.get("size").is_none());
 
         let discarded =
-            serde_json::to_value(StateEvent::terminal(1, Some(StopReason::Discard), None, None, None)).unwrap();
+            serde_json::to_value(StateEvent::terminal(1, Some(StopReason::Discard), None, None, None, None, Some("write_failed")))
+                .unwrap();
         assert_eq!(discarded["outcome"], "discarded");
+        assert_eq!(discarded["skippedReason"], "write_failed");
+        assert!(failed["sidecar"].is_null());
 
         // Progress events carry no outcome, size or reason.
         let p = serde_json::to_value(StateEvent::progress(RecState::Recording, 5)).unwrap();
         assert!(p.get("outcome").is_none() && p.get("reason").is_none() && p.get("size").is_none());
+        assert!(p.get("sidecar").is_none() && p.get("skippedReason").is_none());
         assert_eq!(p["state"], "recording");
     }
 }

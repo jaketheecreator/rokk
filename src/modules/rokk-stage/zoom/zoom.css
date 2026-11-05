@@ -1,0 +1,298 @@
+/* "Preview zoom" player (lazy). Rokk tokens; the dialog primitive gives the
+   surface, overlay and focus trap. */
+
+/* A column that never grows past the window: the video keeps its size and
+   aspect, and the controls scroll inside as a safety net on short windows. */
+.rk-zoom-dialog {
+  display: flex;
+  flex-direction: column;
+  max-width: min(1000px, calc(100% - 2rem));
+  max-height: calc(100vh - 32px);
+  gap: 10px;
+  padding-block: 18px;
+  border-radius: 20px;
+}
+
+.rk-zoom-stage {
+  position: relative;
+  /* Keeps the video's aspect: as wide as fits, at most 660px (about 418px
+     tall at a 16:10 recording), and short enough to leave room for the
+     controls. It never shrinks in height alone, because the camera maps the
+     box's width and height. */
+  flex: 0 0 auto;
+  /* At least 160px tall: the floor is in the width, so the aspect holds. */
+  width: min(
+    100%,
+    660px,
+    max(160px, 100vh - 360px) * var(--rk-zoom-ar, 1.6)
+  );
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #000;
+}
+
+.rk-zoom-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  transform-origin: 0 0;
+}
+
+.rk-zoom-controls {
+  display: flex;
+  flex-direction: column;
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  gap: 8px;
+  /* Room for focus rings inside the scrolling area. */
+  padding: 3px;
+  margin: -3px;
+}
+
+.rk-zoom-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.rk-zoom-btn,
+.rk-zoom-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 16px;
+  border: 1px solid var(--rk-edge);
+  background: var(--rk-field);
+  color: var(--rk-text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.rk-zoom-btn:hover,
+.rk-zoom-switch:hover {
+  background: var(--rk-active);
+}
+
+.rk-zoom-dialog :is(button, input):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.rk-zoom-knob {
+  position: relative;
+  width: 26px;
+  height: 16px;
+  border-radius: 8px;
+  background: var(--rk-edge);
+}
+
+.rk-zoom-knob::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--rk-text-2);
+  transition: translate 120ms ease;
+}
+
+.rk-zoom-switch[aria-checked="true"] .rk-zoom-knob {
+  background: var(--rk-working);
+}
+
+.rk-zoom-switch[aria-checked="true"] .rk-zoom-knob::after {
+  translate: 10px 0;
+  background: #fff;
+}
+
+.rk-zoom-scrub {
+  position: relative;
+  flex: 1 1 200px;
+  display: flex;
+  align-items: center;
+}
+
+.rk-zoom-scrub input,
+.rk-zoom-slider input {
+  width: 100%;
+  accent-color: var(--rk-working);
+}
+
+/* One 14 px button per candidate zoom, centered on the track; the visible
+   mark is a 2 by 10 px bar, filled when the zoom is on, hollow when off. */
+.rk-zoom-tick {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.rk-zoom-tick::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 6px;
+  width: 2px;
+  height: 10px;
+  border-radius: 1px;
+  background: var(--rk-working);
+}
+
+.rk-zoom-tick[aria-pressed="false"]::before {
+  background: none;
+  box-shadow: inset 0 0 0 1px var(--rk-text-2);
+  opacity: 0.6;
+}
+
+.rk-zoom-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--rk-text-2);
+  font: inherit;
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.rk-zoom-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 2px 2px 10px;
+  border-radius: 16px;
+  border: 1px solid var(--rk-edge);
+  background: var(--rk-field);
+  font-size: 13px;
+  color: var(--rk-text-2);
+}
+
+.rk-zoom-seg > button {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 13px;
+  color: var(--rk-text-2);
+  font: inherit;
+  font-weight: 500;
+}
+
+.rk-zoom-seg > button[aria-pressed="true"] {
+  background: var(--rk-active);
+  color: var(--rk-text);
+  font-weight: 600;
+}
+
+.rk-zoom-slider:has(input:disabled) {
+  opacity: 0.5;
+}
+
+.rk-zoom-time,
+.rk-zoom-slider output {
+  font-variant-numeric: tabular-nums;
+  color: var(--rk-text-2);
+  font-size: 12px;
+}
+
+.rk-zoom-slider {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.rk-zoom-slider input {
+  width: 76px;
+}
+
+.rk-zoom-note {
+  font-size: 12px;
+  color: var(--rk-text-2);
+}
+
+.rk-zoom-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.rk-zoom-error-title {
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rk-zoom-knob::after {
+    transition: none;
+  }
+}
+
+.rk-zoom-export {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--rk-edge);
+}
+
+.rk-zoom-radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.rk-zoom-primary {
+  border-color: var(--rk-working);
+}
+
+.rk-zoom-btn:disabled,
+.rk-zoom-switch:disabled,
+.rk-zoom-slider input:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.rk-zoom-bar {
+  flex: 1;
+  min-width: 120px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--rk-field);
+  overflow: hidden;
+}
+
+.rk-zoom-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--rk-working);
+  transition: width 0.2s linear;
+}
+
+.rk-zoom-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rk-zoom-bar > span {
+    transition: none;
+  }
+}

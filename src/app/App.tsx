@@ -1616,7 +1616,7 @@ export default function App() {
             onActivate={onActivateAgent}
           />
           <Toaster position="bottom-right" />
-          <RokkStageSlot terminals={tabs.filter((t) => t.kind === "terminal").length} zen={zenMode}><Suspense fallback={null}><RokkStage /></Suspense></RokkStageSlot>
+          <RokkStageSlot terminals={tabs.filter((t) => t.kind === "terminal").length} zen={zenMode}><Suspense fallback={null}><RokkStage tabs={spaceTabs} activeId={activeId} activate={setActiveId} openPreview={openPreviewTab} reload={(id) => previewRefs.current.get(id)?.reload()} /></Suspense></RokkStageSlot>
           <BuddyGate><Suspense fallback={null}><RokkBuddy tabs={tabs} activeId={activeId} repoRoot={sourceControl.repo?.repoRoot ?? null} /></Suspense></BuddyGate>
           <Suspense fallback={null}><RokkHandshake tabs={tabs} activeId={activeId} /></Suspense>
 

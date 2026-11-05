@@ -196,6 +196,11 @@ export function enterForRecovery(): void {
   if (!state.on) enter("keyboard");
 }
 
+/** Says `text` in the stage live region. */
+export function announce(text: string): void {
+  set({ announcement: text });
+}
+
 export function setWallpaper(id: WallpaperId): void {
   writeWallpaper(id);
   set({ wallpaper: id });

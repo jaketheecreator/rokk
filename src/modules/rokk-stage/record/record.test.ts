@@ -406,3 +406,45 @@ describe("restart from the recording controller", () => {
     expect(resultFor(ev)).toEqual({ kind: "error", error, reason: "restart" });
   });
 });
+
+describe("Auto-zoom, always on", () => {
+  it("always adds the mouse path sentence to the checklist", async () => {
+    const { AUTOZOOM_CHECKLIST, checklistFor } = await import("./record");
+    expect(AUTOZOOM_CHECKLIST).toBe(
+      "Rokk also saves your mouse path (positions and clicks only) next to the video, so it can be zoomed later. Nothing about your screen is saved.",
+    );
+    expect(checklistFor(CHECKLIST_TEXT, "terminal")).toBe(`${CHECKLIST_TEXT} ${AUTOZOOM_CHECKLIST}`);
+    expect(checklistFor(CHECKLIST_TEXT, "preview")).toContain(AUTOZOOM_CHECKLIST);
+  });
+
+  it("always tracks, and sends the frame only at app zoom 100%", async () => {
+    const { trackArgs } = await import("./record");
+    const rect = { x: 139, y: 80, width: 1000, height: 620 };
+    expect(trackArgs(rect, 1)).toEqual({ cursorTrack: true, frame: { x: 139, y: 80, w: 1000, h: 620 } });
+    expect(trackArgs(rect, 1.1)).toEqual({ cursorTrack: true, frame: null });
+    expect(trackArgs(null, 1).frame).toBeNull();
+  });
+
+  it("shows only the skipped reason on the result card", () => {
+    const base: RecordEvent = {
+      state: "idle",
+      elapsed: 10,
+      finished: "/Users/x/Movies/Rokk/Rokk-2026-11-03-143458.mp4",
+      outcome: "saved",
+      size: 1000,
+      sidecar: null,
+      skippedReason: "write_failed",
+    };
+    const card = resultFor(base);
+    expect(card).toMatchObject({ kind: "saved", note: "Auto-zoom could not save the mouse path." });
+    if (!card) throw new Error("no card");
+    const html = renderToString(
+      createElement(ResultCardView, { card, onShow: () => {}, onAgain: () => {}, onDelete: () => {}, onDone: () => {} }),
+    );
+    expect(html).toContain("Auto-zoom could not save the mouse path.");
+    // The old app zoom skip no longer exists.
+    expect(resultFor({ ...base, skippedReason: "app_zoom" })).not.toHaveProperty("note");
+    const ok = resultFor({ ...base, sidecar: "/Users/x/Movies/Rokk/.zoom/Rokk-2026-11-03-143458.zoom.json", skippedReason: null });
+    expect(ok).not.toHaveProperty("note");
+  });
+});

@@ -361,10 +361,53 @@ impl ErrorCode {
     }
 }
 
-/// Validates a recording to delete: an app-generated `.mp4` regular file in
-/// ~/Movies/Rokk, after resolving symlinks and `..`.
+/// `Rokk-YYYY-MM-DD-HHMMSS`, then up to two `-N` counters of 1 to 3 digits
+/// (the second second in a name, then a finalize collision).
+fn stamp_stem(stem: &str) -> bool {
+    let Some(rest) = stem.strip_prefix("Rokk-") else {
+        return false;
+    };
+    let b = rest.as_bytes();
+    if b.len() < 17 {
+        return false;
+    }
+    let digits = |r: std::ops::Range<usize>| b[r].iter().all(u8::is_ascii_digit);
+    let stamp = digits(0..4) && b[4] == b'-' && digits(5..7) && b[7] == b'-' && digits(8..10) && b[10] == b'-' && digits(11..17);
+    let counters: Vec<&[u8]> = if b.len() == 17 { Vec::new() } else { b[18..].split(|c| *c == b'-').collect() };
+    stamp
+        && (b.len() == 17 || b[17] == b'-')
+        && counters.len() <= 2
+        && counters.iter().all(|n| (1..=3).contains(&n.len()) && n.iter().all(u8::is_ascii_digit))
+}
+
+/// An original recording: `Rokk-YYYY-MM-DD-HHMMSS.mp4`, optionally with counters.
+pub fn recording_name(name: &str) -> bool {
+    name.strip_suffix(".mp4").is_some_and(stamp_stem)
+}
+
+/// A zoomed copy: `<original stem>-zoom.mp4` or `<original stem>-zoom-N.mp4`.
+pub fn zoom_copy_name(name: &str) -> bool {
+    let Some(stem) = name.strip_suffix(".mp4") else {
+        return false;
+    };
+    let base = match stem.rsplit_once("-zoom-") {
+        Some((base, n)) if (1..=3).contains(&n.len()) && n.bytes().all(|b| b.is_ascii_digit()) => base,
+        _ => match stem.strip_suffix("-zoom") {
+            Some(base) => base,
+            None => return false,
+        },
+    };
+    stamp_stem(base)
+}
+
+/// Validates a recording to delete: an original recording or a zoomed copy,
+/// as a regular file in ~/Movies/Rokk, after resolving symlinks and `..`.
 pub fn check_delete(home: &Path, file: &Path) -> Result<PathBuf, RecordError> {
     let no = || RecordError::new(ErrorCode::NotDeletable);
+    let name = file.file_name().and_then(|n| n.to_str()).ok_or_else(no)?;
+    if !recording_name(name) && !zoom_copy_name(name) {
+        return Err(no());
+    }
     let real = check_output(home, file).map_err(|_| no())?;
     match std::fs::symlink_metadata(&real) {
         Ok(m) if m.is_file() => Ok(real),
@@ -591,6 +634,41 @@ mod tests {
             let e = check_delete(&h, &bad).unwrap_err();
             assert_eq!(e.code, ErrorCode::NotDeletable, "{}", bad.display());
         }
+    }
+
+    #[test]
+    fn delete_accepts_zoomed_copies_by_name_only() {
+        let (_d, h) = home();
+        let dir = output_dir(&h);
+        for ok in [
+            "Rokk-2026-11-02-090507-zoom.mp4",
+            "Rokk-2026-11-02-090507-zoom-2.mp4",
+            "Rokk-2026-11-02-090507-3-zoom.mp4",
+            "Rokk-2026-11-02-090507-3-zoom-12.mp4",
+        ] {
+            assert!(zoom_copy_name(ok), "{ok}");
+            std::fs::write(dir.join(ok), b"x").unwrap();
+            assert!(check_delete(&h, &dir.join(ok)).is_ok(), "{ok}");
+        }
+        for bad in [
+            "Rokk-2026-11-02-090507-zoom-partial.mp4",
+            "Rokk-2026-11-02-090507-partial.mp4",
+            "Rokk-2026-11-02-090507-zoomed.mp4",
+            "Rokk-2026-11-02-090507-zoom-1234.mp4",
+            "Rokk-2026-11-02-090507-zoom.mov",
+            "Rokk-holiday-zoom.mp4",
+            "Rokk-1.mp4",
+            "Rokk-2026-11-02-090507-1-2-3.mp4",
+        ] {
+            std::fs::write(dir.join(bad), b"x").unwrap();
+            assert!(check_delete(&h, &dir.join(bad)).is_err(), "{bad}");
+        }
+        assert!(recording_name("Rokk-2026-11-02-090507.mp4"));
+        assert!(recording_name("Rokk-2026-11-02-090507-2.mp4"));
+        assert!(!recording_name("Rokk-2026-11-02-090507-zoom.mp4"));
+        // Deleting an original leaves its zoomed copy alone (the delete
+        // command removes only the file named and its mouse path file).
+        assert!(!recording_name("Rokk-2026-11-02-090507-zoom-2.mp4"));
     }
 
     #[cfg(unix)]

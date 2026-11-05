@@ -124,3 +124,36 @@ Renaming the compiled program breaks the places below, so migrate them together 
 - [ ] **Upstream files touched by the controller:** `vite.config.ts` (one entry line), `src-tauri/src/lib.rs` (two command lines) and the new `src-tauri/capabilities/recorder.json` need care when merging upstream. `tauri.conf.json` was not touched.
 - [ ] **Why the finalize hung:** a `-partial.mp4` was left on 2026-11-02 when a stop never finished saving. The watchdog now covers it; find the root cause (ScreenCaptureKit's finalize callback, or the removal of the menu bar item off the main thread) with a real run.
 - [ ] **What the red pill is:** confirm from a real run, with the new log lines, which callback the red control at the top left of the captured window sends (`userStopped` `-3817` or `systemStoppedStream` `-3821`), and whether the menu bar item was visible.
+
+## Stage Show switch
+
+- [ ] **A Both layout:** terminal and preview side by side in the frame.
+- [ ] **Automatic detection of running dev servers:** needs a Rust listener scan and a privacy review.
+- [ ] **Mobile preview with a phone frame, and window shapes** (Phase 3).
+- [ ] **Recording another app's window through a system picker:** needs its own consent design.
+- [ ] **Non-localhost URLs** in the Show popover.
+- [ ] **Upstream files touched:** `src/app/App.tsx` (the stage mount line now passes tabs) and `src/modules/preview/PreviewPane.tsx` (one `data-rokk-preview` attribute) need care when merging upstream.
+
+## Auto-zoom
+
+- [x] **Phase C route decision:** the `objc2-av-foundation` and `objc2-core-media` crates (approved 2026-11-04), design R-C (see ZOOM_MAP.md section 10).
+- [ ] **Phase C first build:** the Rust was written without a build. Run `cd src-tauri && cargo test --lib rokk_record 2>&1 | tail -30` and fix what the compiler says. `Cargo.lock` gains the two crates on that first local build, before CI's `--locked` check.
+- [ ] **Phase C upstream files:** `src-tauri/Cargo.toml` (the macOS crates and `objc2-foundation` features), `src-tauri/Cargo.lock`, `src-tauri/src/lib.rs` (three command lines) and NOTICE; take care when merging upstream.
+- [ ] **HEVC export:** AVFoundation documents the average bit rate key for H.264 only; HEVC needs a check before it is offered.
+- [ ] **Scroll awareness for new recordings:** record scroll event times only (no positions, no content) through a local `NSEvent` monitor in Rokk's own window, next to the cursor track, so pauses while scrolling can be dropped. Verify first that a local monitor needs no macOS permission (see ZOOM_MAP.md section 11).
+- [ ] **Hide temporary files too:** write the recorder's and the export's `-partial.mp4` files into a hidden folder as well, so Finder never shows them.
+- [ ] **Settings: open the mouse path folder:** a Settings button that reveals `~/Movies/Rokk/.zoom` in Finder.
+- [ ] **First-recording text:** it still says the mouse path is saved "next to the video" (now in a hidden folder beside it); reword if wanted.
+- [ ] **Sites that refuse embedding:** recording another window or browser tab through the system picker (ScreenCaptureKit's content picker) would cover sites that block frames. It needs its own consent design, since it records outside Rokk.
+- [ ] **Export frame rate:** the output is a constant 30 fps; a 60 fps option would need the recorder to capture at 60.
+- [ ] **Bit rate:** recordings are 1.4 to 4.4 Mbit/s (ScreenCaptureKit's choice; the recording output has no setting), which limits sharpness at 2x.
+- [ ] **Size budget:** raised to 1,575,000 bytes for the Phase B player (2026-11-03). The next room must come from trimming Terax's built-in AI agent.
+- [ ] **Scroll detection is not planned:** scrolling does not move the cursor, and seeing scroll events would need an event tap and a macOS permission (Input Monitoring or Accessibility). The 1.5 s hold cap covers it.
+- [ ] **WebKit media clock:** confirm with `rokkZoomDebug()` that `uniqueTimeFraction` is near 1 on a real recording; if frame callbacks are missing in this WebKit, the clock falls back to `currentTime` changes.
+- [ ] **Zoom as the default result:** whether a saved recording should later offer the zoomed version first.
+- [ ] **Asset protocol scope (upstream `src-tauri/tauri.conf.json`), owner decision:** the player plays the MP4 through `convertFileSrc`, which works because the asset protocol is already on with scope `["**"]`. Narrowing it to `$MOVIE/Rokk/*.mp4` would break the upstream editor's image, video, audio and PDF preview for files in other folders (`src/modules/editor/EditorPane.tsx:584`), so it was not changed. Options: keep `**`; narrow it and let the editor allow each opened file at runtime through a small Rust command (`asset_protocol_scope().allow_file`), which touches upstream files; or narrow it and drop the editor's media preview.
+- [ ] **Upstream files:** `src-tauri/src/lib.rs` gained the `zoom_read` line and `src/styles/compositingBudget.test.ts` an allowlist entry; both need care when merging upstream.
+- [ ] **Zoom algorithm parameters:** level, dwell time, dwell radius, ease durations, gap and hold limits, to tune in Phase D.
+- [ ] **Verify** that the cursor calls never prompt for a permission, and the clock offset between `recording_did_start` and the first frame.
+- [x] **Optional frame:** the sidecar's `frame` is null when the app zoom is not 100%; Phase B then zooms within the whole video.
+- [ ] **Stage frame presets and Lock shape** were removed in favor of free resizing; old `rokk.stage.size` preset values are ignored, and `rokk.stage.autozoom` is no longer read.
