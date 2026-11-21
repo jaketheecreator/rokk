@@ -9,3 +9,4 @@ export const recordStart = (windowLabel: string, stageOn: boolean, track?: Recor
 export const recordStop = () => invoke<string | null>("record_stop");
 export const recordCancel = () => invoke<string | null>("record_cancel");
 export const recordDelete = (path: string) => invoke<void>("record_delete", { path });
+export const shareSource = (path: string) => invoke<string>("share_source", { path });

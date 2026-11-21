@@ -603,7 +603,7 @@ mod imp {
 /// through a Core Image composition (crop, then Lanczos scale per frame)
 /// and AVAssetWriter writes H.264 at a set average bit rate.
 #[cfg(target_os = "macos")]
-mod av {
+pub(super) mod av {
     use super::{crop_rect, lanczos, view_at, CamPoint, Crop, ExportCode, FPS};
     use block2::RcBlock;
     use objc2::rc::{autoreleasepool, Retained};

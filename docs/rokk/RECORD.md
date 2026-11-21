@@ -39,7 +39,7 @@ Records the Rokk window to an MP4 file while stage mode is on. macOS 15 or later
 - **One terminal event:** every way out (the menu bar, `Mod+Alt+R`, `Mod+Alt+S`, a cancel, the window closing, the 10 minute cap, low disk space, quitting, a capture failure) ends with exactly one `rokk-record-state` event with `state: "idle"`. That event comes after the menu bar item is gone and the file is finalized or deleted. It carries `finished` (the saved path, or null), `error` (code and message, or null), `outcome` (`saved`, `discarded` or `error`) and the file `size`.
 - **Watchdog:** if saving the file does not finish within 10 seconds, the recorder gives up. It deletes the partial file and ends with the error `finalize_timeout` ("Saving the recording took too long, so it was stopped and not kept.").
 - **Result card:** when a recording ends, the stage controls come back together with a glass card at the bottom center, announced through the live region. The card is never shown while recording, so it is never in a video, and the toast still appears too.
-  - **Saved:** "Recording saved", the file name and size, then Show in Finder, Record again (straight to the countdown, no checklist), Delete recording (with a confirm) and Done.
+  - **Saved:** "Recording saved", the file name and size, then Show in Finder, Share (the Share panel, see SHARE.md), Record again (straight to the countdown, no checklist), Delete recording (with a confirm) and Done.
   - **Discarded:** "Recording discarded", then Record again and Done.
   - **Error:** the plain message and its code, then Try again and Done.
 - **Delete:** the `record_delete(path)` command re-checks the path with the same rules as the recorder: an app-generated `.mp4` regular file inside `~/Movies/Rokk`, no symlinks and no `..`. It refuses anything else with `not_deletable`.
@@ -212,6 +212,13 @@ Run each in stage mode, with `pnpm tauri dev` and the log open:
 - **Partial file:** the recording is written to `...-partial.mp4` in the same folder and renamed only after it is finalized.
 - **Generated names only:** names never come from user input. Paths are checked to stay inside `~/Movies/Rokk`, with no symlinks and no `..`.
 - **Format:** H.264 in MP4 at 30 fps, at the window's pixel size, with the cursor shown.
+- **Cursor:** the system cursor is part of the video (`with_shows_cursor(true)` in `mac.rs`). The zoom export and the smaller share copy crop and scale those frames (Core Image, Lanczos), so the cursor is zoomed with the picture; nothing is drawn on top.
+- **Share files** (see SHARE.md), written next to the video with new names:
+  - `<name>-share.mp4`: a smaller copy;
+  - `<name>-readme.gif`: a README GIF;
+  - `<name>-poster.png`: a poster.
+
+  `record_delete` does not delete them; delete them in Finder.
 
 ## Shortcut
 

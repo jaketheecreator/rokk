@@ -112,11 +112,14 @@ export default function ZoomPlayer({
   sidecar,
   onClose,
   opener,
+  onShare,
 }: {
   mp4: string;
   sidecar: string;
   onClose: () => void;
   opener: () => HTMLElement | null;
+  /** "Share" after Save with zoom (see share/SharePanel.tsx). */
+  onShare?: (path: string, el: HTMLElement | null) => void;
 }) {
   // Not memoized by the compiler: it renders a few times a second at most,
   // and the camera runs outside React; this keeps the lazy chunk small.
@@ -513,6 +516,7 @@ export default function ZoomPlayer({
                   setClosing(false);
                   if (close) onClose();
                 }}
+                onShare={onShare}
               />
             </Suspense>
           </div>

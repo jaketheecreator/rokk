@@ -130,6 +130,17 @@ How to read it:
 
 Always on: the recorder saves the mouse path next to each recording, and there is no toggle (see RECORD.md). After a recording with a mouse path, the result card offers "Preview zoom", a player that shows the recording with the zoom applied, with one gentle motion and a hold of 1.5 s by default (see ZOOM_MAP.md). The video file is not changed. "Save with zoom" in that player writes a new `Rokk-...-zoom.mp4` next to it (macOS 13 and later), with a progress bar and Cancel.
 
+## Share
+
+The result card has a "Share" button, and so does the finished "Save with zoom" state. It opens the Share panel (see SHARE.md), a dialog that prepares a post for X, LinkedIn or YouTube without posting anything:
+- limit checks and a caption editor for each platform;
+- a secrets checkbox;
+- Copy file and a drag handle;
+- a smaller 1080p copy;
+- a README GIF and a poster PNG.
+
+The card shares the newest zoomed copy if there is one.
+
 ## Wallpapers
 
 Six files in `public/stage/`: `horizon.webp`, `embers.webp`, `silk.webp`, `lagoon.webp`, `dusk.webp`, `mist.webp`. They are served as files and do not count toward the JS budget.

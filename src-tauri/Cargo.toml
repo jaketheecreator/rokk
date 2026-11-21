@@ -94,7 +94,8 @@ keyring = { version = "3.6", default-features = false, features = [
 ] }
 objc2 = { version = "0.6", features = ["exception"] }
 block2 = "0.6"
-objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSColor", "NSPasteboard", "NSPasteboardItem", "NSWindow", "NSWorkspace"] }
+# NSApplication to NSView: the share panel's native file drag (share.rs).
+objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSColor", "NSPasteboard", "NSPasteboardItem", "NSWindow", "NSWorkspace", "NSApplication", "NSResponder", "NSView", "NSEvent", "NSImage", "NSDragging", "NSDraggingItem", "NSDraggingSession", "objc2-core-foundation"] }
 objc2-foundation = { version = "0.3", features = ["NSArray", "NSURL", "NSString", "NSUserDefaults", "NSValue", "NSDictionary", "NSError", "NSObject", "NSProcessInfo"] }
 # Rokk zoom export (docs/rokk/ZOOM_MAP.md, Phase C): AVFoundation reads the
 # recording through a Core Image composition and writes a new H.264 MP4.
@@ -111,6 +112,9 @@ objc2-av-foundation = { version = "0.3.2", default-features = false, features = 
 	"AVVideoCompositing",
 	"AVMediaFormat",
 	"AVVideoSettings",
+	# The share panel's GIF and poster frames (share.rs).
+	"AVAssetImageGenerator",
+	"objc2-core-graphics",
 	"block2",
 	"objc2-core-media",
 	"objc2-core-image",

@@ -3,9 +3,11 @@
 // without the menu bar indicator, stage mode and a visible user action.
 // See docs/rokk/RECORD.md.
 
+pub mod browsers;
 pub mod controller;
 pub mod cursor;
 pub mod logic;
+pub mod share;
 pub mod zoom;
 pub mod zoom_export;
 #[cfg(target_os = "macos")]
@@ -571,6 +573,7 @@ mod imp {
 pub fn on_exit(app: &AppHandle) {
     // A zoom export in progress is cancelled and its partial file deleted.
     zoom_export::on_exit();
+    share::on_exit();
     imp::on_exit(app);
 }
 

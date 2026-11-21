@@ -1,0 +1,290 @@
+/* Share panel (lazy). Rokk tokens; the dialog primitive gives the surface,
+   overlay and focus trap. Two columns, one on narrow windows. */
+
+.rk-share-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: min(1060px, calc(100% - 2rem));
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  padding-block: 18px;
+  border-radius: 20px;
+}
+
+.rk-share-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: 20px;
+}
+
+@media (max-width: 760px) {
+  .rk-share-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The column is the container, so the action row adapts to the panel, not
+   the window. */
+.rk-share-right {
+  container-type: inline-size;
+}
+
+/* Four equal columns; labels never wrap or truncate. Equal widths also
+   keep a button the same size while it says "Copied". */
+.rk-share-four {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.rk-share-four > .rk-share-btn {
+  justify-content: center;
+  height: 40px;
+  padding: 0 10px;
+  font-weight: 500;
+}
+
+/* Leading icons in CSS (no bundle cost), skipped by screen readers:
+   copy, file, grip, folder. */
+.rk-share-four > ::before {
+  font-size: 14px;
+}
+.rk-share-four > :nth-child(1)::before {
+  content: "\29C9" / "";
+}
+.rk-share-four > :nth-child(2)::before {
+  content: "\2398" / "";
+}
+.rk-share-four > :nth-child(3)::before {
+  content: "\283F" / "";
+}
+.rk-share-four > :nth-child(4)::before {
+  content: "\1F5C0" / "";
+}
+
+/* Under about 540px the four labels no longer fit: 2 by 2. */
+@container (max-width: 540px) {
+  .rk-share-four {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.rk-share-left,
+.rk-share-right,
+.rk-share-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.rk-share-video {
+  display: block;
+  width: 100%;
+  max-height: 42vh;
+  border-radius: 12px;
+  background: #000;
+  object-fit: contain;
+}
+
+.rk-share-scrub {
+  width: 100%;
+}
+
+.rk-share-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.rk-share-h {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rk-text);
+}
+
+.rk-share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 16px;
+  border: 1px solid var(--rk-edge);
+  background: var(--rk-field);
+  color: var(--rk-text);
+  font-family: inherit;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.rk-share-btn:hover:not(:disabled, [aria-disabled="true"]) {
+  background: var(--rk-active);
+}
+
+.rk-share-btn:disabled,
+.rk-share-btn[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* The main action: the only filled control, the strongest in the panel. */
+.rk-share-post {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rk-share-main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 44px;
+  border: 0;
+  border-radius: 22px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.rk-share-main[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.rk-share-main:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+.rk-share-note[data-done] {
+  color: var(--rk-done);
+}
+
+.rk-share-drag:not([aria-disabled="true"]) {
+  cursor: grab;
+}
+
+.rk-share-drag {
+  touch-action: none;
+  user-select: none;
+}
+
+.rk-share-dialog :is(button, input, textarea, summary):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.rk-share-note {
+  font-size: 12px;
+  color: var(--rk-text-2);
+}
+
+.rk-share-note[data-over="true"] {
+  color: var(--rk-attention);
+}
+
+.rk-share-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--rk-text);
+}
+
+.rk-share-check {
+  display: flex;
+  gap: 8px;
+}
+
+/* The tick or triangle, in CSS (no bundle cost), skipped by screen readers;
+   the check text says ok or not on its own. */
+.rk-share-check::before {
+  flex: 0 0 auto;
+  width: 14px;
+  color: var(--rk-done);
+  content: "\2713" / "";
+}
+
+.rk-share-check[data-ok="false"]::before {
+  color: var(--rk-attention);
+  content: "\25B2" / "";
+}
+
+.rk-share-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--rk-text-2);
+}
+
+.rk-share-input {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid var(--rk-edge);
+  background: var(--rk-field);
+  color: var(--rk-text);
+  font-size: 13px;
+}
+
+.rk-share-caption {
+  min-height: 110px;
+  color: var(--rk-text);
+}
+
+.rk-share-confirm {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--rk-text);
+}
+
+.rk-share-bar {
+  flex: 1;
+  min-width: 120px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--rk-field);
+  overflow: hidden;
+}
+
+.rk-share-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--rk-working);
+  transition: width 0.2s linear;
+}
+
+.rk-share-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--rk-edge);
+}
+
+.rk-share-settings > summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--rk-text);
+}
+
+.rk-share-settings[open] > :not(summary) {
+  margin-top: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rk-share-bar > span {
+    transition: none;
+  }
+}

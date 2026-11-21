@@ -52,6 +52,8 @@ import {
 
 // The "Preview zoom" player loads only when opened.
 const ZoomPlayer = lazy(() => import("../zoom/ZoomPlayer"));
+// The Share panel loads only when opened.
+const SharePanel = lazy(() => import("../share/SharePanel"));
 
 function storage(): Storage | null {
   try {
@@ -98,6 +100,9 @@ export default function RecordControls({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [zoomOpen, setZoomOpen] = useState(false);
   const zoomButton = useRef<HTMLButtonElement>(null);
+  // The file to share and the button focus returns to.
+  const [share, setShare] = useState<{ path: string; opener: () => HTMLElement | null } | null>(null);
+  const shareButton = useRef<HTMLButtonElement>(null);
   const [status, setStatus] = useState<RecordStatus | null>(null);
   const [dialog, setDialog] = useState<"permission" | "checklist" | null>(null);
   const [asked, setAsked] = useState(false);
@@ -234,11 +239,30 @@ export default function RecordControls({
           onDone={() => setCard(null)}
           onZoom={() => setZoomOpen(true)}
           zoomRef={zoomButton}
+          onShare={(path) =>
+            // The zoomed copy if there is one, else the recording.
+            void ipc.shareSource(path).then(
+              (p) => setShare({ path: p, opener: () => shareButton.current }),
+              () => setShare({ path, opener: () => shareButton.current }),
+            )
+          }
+          shareRef={shareButton}
         />
       ) : null}
       {zoomOpen && card?.kind === "saved" && card.sidecar ? (
         <Suspense fallback={null}>
-          <ZoomPlayer mp4={card.path} sidecar={card.sidecar} onClose={() => setZoomOpen(false)} opener={() => zoomButton.current} />
+          <ZoomPlayer
+            mp4={card.path}
+            sidecar={card.sidecar}
+            onClose={() => setZoomOpen(false)}
+            opener={() => zoomButton.current}
+            onShare={(path, el) => setShare({ path, opener: () => el })}
+          />
+        </Suspense>
+      ) : null}
+      {share && card?.kind === "saved" ? (
+        <Suspense fallback={null}>
+          <SharePanel path={share.path} onClose={() => setShare(null)} opener={share.opener} />
         </Suspense>
       ) : null}
       {count !== null ? (
@@ -377,7 +401,7 @@ export function cardActions(card: ResultCard): string[] {
   if (card.kind === "saved") {
     // "Preview zoom" only when the recording has its saved mouse path.
     const zoom = card.sidecar ? ["Preview zoom"] : [];
-    return ["Show in Finder", ...zoom, "Record again", "Delete recording", "Done"];
+    return ["Show in Finder", "Share", ...zoom, "Record again", "Delete recording", "Done"];
   }
   if (card.kind === "discarded") return ["Record again", "Done"];
   return ["Try again", "Done"];
@@ -391,6 +415,8 @@ export function ResultCardView({
   onDone,
   onZoom,
   zoomRef,
+  onShare,
+  shareRef,
 }: {
   card: ResultCard;
   onShow: (path: string) => void;
@@ -399,6 +425,8 @@ export function ResultCardView({
   onDone: () => void;
   onZoom?: () => void;
   zoomRef?: Ref<HTMLButtonElement>;
+  onShare?: (path: string) => void;
+  shareRef?: Ref<HTMLButtonElement>;
 }) {
   const handlers: Record<string, () => void> = {
     "Show in Finder": () => card.kind === "saved" && onShow(card.path),
@@ -406,6 +434,7 @@ export function ResultCardView({
     "Try again": onAgain,
     "Delete recording": onDelete,
     "Preview zoom": () => onZoom?.(),
+    Share: () => card.kind === "saved" && onShare?.(card.path),
     Done: onDone,
   };
   return (
@@ -421,8 +450,8 @@ export function ResultCardView({
         {cardActions(card).map((label) => (
           <button
             key={label}
-            ref={label === "Preview zoom" ? zoomRef : undefined}
-            aria-haspopup={label === "Preview zoom" ? "dialog" : undefined}
+            ref={label === "Preview zoom" ? zoomRef : label === "Share" ? shareRef : undefined}
+            aria-haspopup={label === "Preview zoom" || label === "Share" ? "dialog" : undefined}
             type="button"
             className="rk-stage-record"
             onClick={handlers[label]}

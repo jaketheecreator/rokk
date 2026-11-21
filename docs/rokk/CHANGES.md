@@ -4,6 +4,55 @@ Rokk is based on Terax (Apache License 2.0). This file lists every file Rokk has
 
 ## Added
 
+- **Share links in a chosen browser and Chrome profile (2026-11-21):** "Open links in" (and "Profile" for Chromium browsers) in Share settings.
+  - **Rust:** `rokk_record/browsers.rs` adds `list_browsers`, `list_browser_profiles` (reads only "Local State", keeps only folder and display name) and `open_share_url` (https allow-list, profile checked at call time, `/usr/bin/open` with an argument array, fallback flag).
+  - **Panel:** every Share link now opens through it, not the opener plugin's `openUrl`.
+  - **Trimmed to fit the budget:**
+    - "Share this copy" and the X recommended-resolution warning are gone (the recommendation stays in `RECOMMENDED`).
+    - The X counter no longer treats bare domains as links.
+    - The "limits were checked" and "never posts" lines are gone.
+    - The hidden check prefixes and the drag help are gone; the check icons are CSS.
+  - **Added:** `src-tauri/src/modules/rokk_record/browsers.rs`.
+  - **Changed (Rokk files):** `src-tauri/src/modules/rokk_record/mod.rs`, `src/modules/rokk-stage/share/{SharePanel.tsx,share.ts,platforms.ts,share.css,share.test.ts,platforms.test.ts,post.test.ts}`, `docs/rokk/SHARE.md`.
+  - **Changed (upstream):** `src-tauri/src/lib.rs` (3 command registrations).
+  - **Size:** total client JS went from 1,574,940 to 1,574,919 bytes. No capability, opener scope, dependency or budget changed.
+
+- **Share panel hand-off row (2026-11-21):** Copy caption, Copy file, Drag the video and Show in Finder now share one row of equal outlined buttons under "Post now", or 2 by 2 when the panel column is under about 540px (container query).
+  - **Feedback:** Copy caption and Copy file say "Copied" for 1.5 s instead of a note line. Copy title moved under the YouTube title field.
+  - **Smaller copy:** "Make a smaller copy" now shows only when the file is over the verified size limit.
+  - **Icons:** CSS characters.
+  - **Changed (Rokk files):** `src/modules/rokk-stage/share/{SharePanel.tsx,share.css,post.test.ts}` and `docs/rokk/SHARE.md`.
+  - **Size:** total client JS went from 1,574,963 to 1,574,940 bytes. No upstream files, no Rust, no new dependencies, no budget raised.
+
+- **Share panel main action (2026-11-21):** "Open X to post" is now one full-width primary button, "Post now" ("Upload now" on YouTube). It is the only filled control, always visible, dimmed and `aria-disabled` with "Tick the box above first" until the secrets box is ticked. A platform helper line sits under it and turns into a green confirmation after the page opens. Behavior is unchanged.
+  - **Added:** `src/modules/rokk-stage/share/post.test.ts`.
+  - **Changed (Rokk files):** `src/modules/rokk-stage/share/{SharePanel.tsx,platforms.ts,share.css}` and `docs/rokk/SHARE.md`.
+  - **Size:** total client JS went from 1,574,950 to 1,574,963 of 1,575,000 bytes. To fit, the panel now uses its visible lines as live regions instead of a hidden one, shows a read error in the video column, and has shorter texts.
+  - No upstream files, no new dependencies, no budget raised.
+
+- **Share panel (2026-11-21):** "Share" on the result card and after Save with zoom opens a share-assist dialog (see SHARE.md). Rokk prepares; the person posts in the browser. There is no posting, no sign-in and no network except opening the platform's page.
+  - **Panel:**
+    - X, LinkedIn and YouTube tabs, each with limit checks (verified on 2026-11-21, with unverified limits shown without a number) and a caption editor with the platform's counter.
+    - A secrets checkbox that gates Open, Copy file and the drag handle.
+    - "Make a smaller copy" (1080p H.264, with the zoom exporter's renderer).
+    - "Save GIF for a README" (AVFoundation and ImageIO) and "Save poster" (PNG).
+  - **Added (Rokk files):**
+    - `src/modules/rokk-stage/share/{platforms.ts,platforms.test.ts,share.ts,share.test.ts,SharePanel.tsx,share.css}`
+    - `src-tauri/src/modules/rokk_record/share.rs` (with Rust tests, including a generated test video)
+    - `docs/rokk/SHARE.md`
+  - **Changed (Rokk files):**
+    - `src/modules/rokk-stage/record/{RecordControls.tsx,ipc.ts,record.test.ts}`
+    - `src/modules/rokk-stage/zoom/{ExportPanel.tsx,ZoomPlayer.tsx,player.test.ts}`
+    - `src-tauri/src/modules/rokk_record/{mod.rs,zoom_export.rs}` (the renderer module is now visible to `share.rs`; no behavior change)
+    - `docs/rokk/{STAGE.md,RECORD.md}`
+  - **Changed (upstream):**
+    - `src-tauri/src/lib.rs`: 8 command registrations.
+    - `src-tauri/Cargo.toml`: features only, no new crates.
+      - objc2-av-foundation: `AVAssetImageGenerator` and `objc2-core-graphics`.
+      - objc2-app-kit: `NSApplication`, `NSResponder`, `NSView`, `NSEvent`, `NSImage`, `NSDragging`, `NSDraggingItem`, `NSDraggingSession` and `objc2-core-foundation`.
+      - Every crate they need was already in `Cargo.lock`.
+  - **Not changed:** no capabilities (the opener's default scope already allows https), no CSP and no budget raised. The total client JS is at 1,574,950 of 1,575,000 bytes, so the next feature needs room from the AI trim (see TODO.md).
+
 - **Preview address (2026-11-05):** the stage Preview now accepts a port, a localhost address or a full http or https address (`show/address.ts`, pure, with tests), in an "Address" popover with port chips, recent addresses and plain errors.
   - **Hint:** websites get their own blank-frame hint.
   - **Checklist:** the first-recording checklist warns that a website's contents (such as a signed-in account) will be in the video.
@@ -304,6 +353,63 @@ Modified (upstream files):
 - Every future raise needs a written reason here and the owner's approval.
 
 Modified: `.size-limit.json` (total client JS limit only), `CLAUDE.md` (Rokk rules).
+
+### Bundle audit (2026-11-21)
+
+- **How it was measured:** a production build with source maps into a scratch folder (`vite build --sourcemap --outDir <scratch>`; no project file changed). A scratch script read the maps and attributed every chunk's bytes to its npm package and `src` folder. Each chunk's gzip size (level 9, the same measure as size-limit) was shared out in proportion to raw bytes.
+- **Totals:** 1,574,919 bytes gzip total (5,103,994 raw, 237 chunks); startup 251,440 bytes. That leaves 81 bytes of headroom.
+- **Top 15 (gzip, then raw):**
+
+| # | Source | gzip | raw | Where |
+|---|---|---|---|---|
+| 1 | not attributed by the maps (helpers and gaps, 128 chunks) | 97,971 | 411,193 | everywhere |
+| 2 | `src/modules/terminal` | 93,062 | 296,113 | terminal chunks |
+| 3 | `src/modules/ai` (AI agent) | 66,263 | 192,702 | lazy AI chunks |
+| 4 | react-dom 19.3.0 | 64,220 | 207,016 | startup |
+| 5 | @codemirror/view | 63,804 | 194,022 | editor |
+| 6 | @codemirror/legacy-modes (about 70 language chunks) | 52,719 | 140,158 | lazy, per language |
+| 7 | ai 6.0.207 (AI agent) | 45,567 | 187,909 | `ai-sdk-shared` |
+| 8 | zod 4.6.5 (AI providers) | 38,206 | 155,810 | AI chunks |
+| 9 | parse5 (markdown rendering) | 38,159 | 124,285 | `streamdown` |
+| 10 | @hugeicons/core-free-icons (already per-icon) | 34,147 | 94,601 | many small chunks |
+| 11 | `src/settings/sections` | 32,323 | 106,741 | settings |
+| 12 | `src/modules/rokk-stage` | 30,788 | 78,240 | lazy Stage and Share |
+| 13 | @lezer/javascript | 29,693 | 77,700 | `cm-lang-html` |
+| 14 | @replit/codemirror-vim-core | 29,249 | 94,041 | `codemirror` |
+| 15 | `src/modules/editor` | 27,586 | 73,542 | editor |
+
+- **Groups:**
+  - **AI-agent-only code:** 277,699 bytes gzip in all:
+    - `src/modules/ai`: 66.3 kB.
+    - `ai`: 45.6 kB.
+    - zod: 38.2 kB.
+    - `@ai-sdk/*`: google 22.8, openai 20.7, anthropic 19.7, xai 11.0, two provider-utils 18.1, gateway 6.7, openai-compatible 6.5, groq 4.2, provider 2.6, react 1.2, cerebras 0.7 kB.
+    - `src/components/ai-elements`: 13.6 kB.
+
+    Editor autocomplete and the Models and Agents settings sections come on top, but are not separated in this table.
+  - **Languages:** Lezer language packages 131.6 kB.
+  - **Markdown:** the streamdown stack 114.7 kB. It is used by the AI chat and also by the Markdown preview, so it is not AI-only.
+  - **UI:** radix 44.9 kB (in the startup chunk).
+- **Duplicates (same package, two or more versions):**
+  - marked 16.4.2 (11.8 kB, `client`) and 17.0.6 (12.5 kB, `streamdown`);
+  - `@ai-sdk/provider-utils` 4.0.30 and 4.0.36 (9.7 and 8.4 kB), and `@ai-sdk/provider` 3.0.10 and 3.0.13;
+  - 17 radix packages in two or three versions (about 6.2 kB extra, inside the startup `radix` chunk);
+  - `style-mod` and `crelt` (under 1 kB).
+- **Dead code:** knip (already a dev dependency) found no unused file in the bundle.
+  - `src/modules/rokk-recorder/main.ts` is the recorder window's entry, which knip does not know about.
+  - The 40 "unused exports" are values used inside their own module or already dropped by tree shaking, so removing the `export` keyword saves nothing.
+- **What was trimmed:** nothing. No none-risk or low-risk item exists.
+  - Unused code is already tree-shaken.
+  - The icons are already imported one by one.
+  - Every duplicate can only be removed by changing `pnpm-lock.yaml` (or `package.json` overrides), which this audit was not allowed to do.
+  - Everything else is a user-visible feature.
+- **Medium-risk candidates for the owner** (saving in gzip bytes):
+  1. **Remove Terax's AI agent** (AI_TRIM_MAP.md): about 278 kB plus autocomplete and two settings tabs. This is the only item that frees 40 kB or more. It removes a feature (chat panel, providers, Ask AI, AI diff tabs, AI commit message) and needs its own task.
+  2. **Dedupe marked:** about 11.8 kB, with a pnpm override to 17. It changes the lockfile, and the `client` chunk's user (LSP hover markdown) needs a check.
+  3. **Dedupe `@ai-sdk/provider-utils` and `provider`:** about 9.4 kB, with a lockfile change. It goes away anyway if item 1 is done.
+  4. **Dedupe radix:** about 6.2 kB, with a lockfile change. It is in the startup chunk, so it helps startup too.
+  5. **Trim rarely used legacy language modes:** up to 52.7 kB. It removes highlighting for those languages (a feature).
+  6. **Turn off Vite's modulepreload polyfill:** about 0.4 kB. WebKit before Safari 17, which macOS 13 may have, lacks modulepreload, so this needs testing there.
 
 ## Session rail (upgrade 4)
 

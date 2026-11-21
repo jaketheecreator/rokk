@@ -33,6 +33,7 @@ export function ExportPanel({
   onBusy,
   closing,
   onClosing,
+  onShare,
 }: {
   mp4: string;
   seconds: number;
@@ -43,6 +44,8 @@ export function ExportPanel({
   onBusy: (busy: boolean) => void;
   closing: boolean;
   onClosing: (close: boolean) => void;
+  /** Opens the Share panel for the saved file; focus returns to `el`. */
+  onShare?: (path: string, el: HTMLElement | null) => void;
 }) {
   "use no memo";
   const [supported, setSupported] = useState(false);
@@ -50,6 +53,7 @@ export function ExportPanel({
   const [view, setView] = useState<ExportView>(IDLE);
   const [said, setSaid] = useState("");
   const [askDelete, setAskDelete] = useState(false);
+  const shareButton = useRef<HTMLButtonElement>(null);
   const last = useRef<ExportView>(IDLE);
 
   const apply = (next: ExportView) => {
@@ -177,6 +181,17 @@ export function ExportPanel({
           >
             Show in Finder
           </button>
+          {onShare ? (
+            <button
+              ref={shareButton}
+              type="button"
+              className="rk-zoom-btn"
+              aria-haspopup="dialog"
+              onClick={() => onShare(view.output, shareButton.current)}
+            >
+              Share
+            </button>
+          ) : null}
           <button
             type="button"
             className="rk-zoom-btn"

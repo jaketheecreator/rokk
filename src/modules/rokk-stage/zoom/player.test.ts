@@ -492,6 +492,7 @@ describe("the Preview zoom button", () => {
     if (!withPath || !without) throw new Error("cards");
     expect(cardActions(withPath)).toEqual([
       "Show in Finder",
+      "Share",
       "Preview zoom",
       "Record again",
       "Delete recording",

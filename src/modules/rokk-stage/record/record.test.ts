@@ -286,7 +286,7 @@ describe("terminal events and the result card", () => {
     const discardedCard = resultFor(discarded);
     const errorCard = resultFor(failed);
     if (!savedCard || !discardedCard || !errorCard) throw new Error("cards");
-    expect(cardActions(savedCard)).toEqual(["Show in Finder", "Record again", "Delete recording", "Done"]);
+    expect(cardActions(savedCard)).toEqual(["Show in Finder", "Share", "Record again", "Delete recording", "Done"]);
     expect(cardActions(discardedCard)).toEqual(["Record again", "Done"]);
     expect(cardActions(errorCard)).toEqual(["Try again", "Done"]);
     const html = renderToString(
@@ -294,6 +294,8 @@ describe("terminal events and the result card", () => {
     );
     expect(html).toContain("Recording saved");
     expect(html).toContain("Rokk-2026-11-02-151108.mp4, 5.7 MB");
+    // Share opens a dialog; focus comes back to it when the panel closes.
+    expect(html).toMatch(/aria-haspopup="dialog"[^>]*>Share</);
     const err = renderToString(
       createElement(ResultCardView, { card: errorCard, onShow: () => {}, onAgain: () => {}, onDelete: () => {}, onDone: () => {} }),
     );
